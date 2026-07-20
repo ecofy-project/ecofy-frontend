@@ -1,0 +1,62 @@
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+.text-page-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 720;
+  letter-spacing: -0.035em;
+  line-height: var(--line-height-tight);
+}
+
+h2,
+.text-section-title {
+  font-size: var(--font-size-xl);
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  line-height: var(--line-height-heading);
+}
+
+h3,
+.text-card-title {
+  font-size: var(--font-size-md);
+  font-weight: 680;
+  line-height: var(--line-height-heading);
+}
+
+.text-label {
+  font-size: var(--font-size-sm);
+  font-weight: 620;
+  line-height: 1.35;
+}
+
+.text-caption {
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.numeric,
+.money-display,
+.metric-card__value,
+input[inputmode='decimal'],
+input[type='date'] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}

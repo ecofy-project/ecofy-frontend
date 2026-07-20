@@ -1,0 +1,80 @@
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --color-primary: #0b8767;
+  --color-primary-hover: #087258;
+  --color-primary-active: #065e49;
+  --color-primary-soft: #e8f7f1;
+  --color-primary-contrast: #ffffff;
+
+  --color-secondary: #147c78;
+  --color-secondary-soft: #e7f5f4;
+
+  --color-background: #f5f8f6;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f9fbfa;
+  --color-surface-elevated: #ffffff;
+
+  --color-border: #dde6e1;
+  --color-border-strong: #c7d4ce;
+
+  --color-text-primary: #14231d;
+  --color-text-secondary: #63716b;
+  --color-text-muted: #89958f;
+  --color-text-on-primary: #ffffff;
+
+  --color-success: #15824b;
+  --color-success-soft: #e7f6ed;
+  --color-warning: #9a6418;
+  --color-warning-soft: #fff4d8;
+  --color-danger: #c8403a;
+  --color-danger-soft: #fdecea;
+  --color-info: #2764d8;
+  --color-info-soft: #eaf1fd;
+
+  --color-overlay: rgb(6 20 14 / 48%);
+  --color-focus: #2764d8;
+  --color-skeleton: #e6ede9;
+  --color-skeleton-highlight: #f4f8f6;
+  --color-ledger-line: rgb(11 135 103 / 11%);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-primary: #45c6a2;
+  --color-primary-hover: #62d3b3;
+  --color-primary-active: #85dfc5;
+  --color-primary-soft: #153f33;
+  --color-primary-contrast: #071f17;
+
+  --color-secondary: #67c8c3;
+  --color-secondary-soft: #173a38;
+
+  --color-background: #0e1512;
+  --color-surface: #151f1b;
+  --color-surface-subtle: #111a16;
+  --color-surface-elevated: #1b2822;
+
+  --color-border: #293a32;
+  --color-border-strong: #3b5046;
+
+  --color-text-primary: #f2f6f4;
+  --color-text-secondary: #aab8b1;
+  --color-text-muted: #829189;
+  --color-text-on-primary: #071f17;
+
+  --color-success: #58cb88;
+  --color-success-soft: #173d29;
+  --color-warning: #e4b760;
+  --color-warning-soft: #403116;
+  --color-danger: #ef807a;
+  --color-danger-soft: #431f20;
+  --color-info: #83a9f2;
+  --color-info-soft: #1c3054;
+
+  --color-overlay: rgb(0 0 0 / 68%);
+  --color-focus: #83a9f2;
+  --color-skeleton: #223129;
+  --color-skeleton-highlight: #2c3c34;
+  --color-ledger-line: rgb(69 198 162 / 12%);
+}

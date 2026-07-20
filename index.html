@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B8767" />
+    <meta
+      name="description"
+      content="EcoFy — uma base clara para decisões financeiras conscientes."
+    />
+    <script>
+      (() => {
+        try {
+          const preference = localStorage.getItem('ecofy.theme') || 'system';
+          const darkSystem = matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme =
+            preference === 'system' ? (darkSystem ? 'dark' : 'light') : preference;
+          document.documentElement.dataset.themePreference = preference;
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <title>EcoFy</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
