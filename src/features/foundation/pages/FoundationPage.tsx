@@ -83,14 +83,13 @@ export function FoundationPage() {
     <div className="page-stack">
       <section className="card foundation-hero" aria-labelledby="foundation-title">
         <div className="foundation-hero__copy">
-          <span className="foundation-hero__eyebrow">Etapa 1 · Fundação</span>
+          <span className="foundation-hero__eyebrow">Sistema EcoFy</span>
           <h1 className="foundation-hero__title" id="foundation-title">
-            Uma base clara para tudo o que vem depois.
+            Uma linguagem visual para decisões mais tranquilas.
           </h1>
           <p className="foundation-hero__description">
-            Arquitetura, transporte e linguagem visual compartilhados antes das
-            funcionalidades de negócio. Esta tela utiliza apenas dados
-            demonstrativos.
+            Tokens, componentes e estados compartilhados para manter a
+            experiência financeira clara, acessível e consistente.
           </p>
         </div>
         <div
@@ -137,7 +136,7 @@ export function FoundationPage() {
           />
           <MetricCard
             accent="info"
-            helperText="Claro, escuro e preferência do sistema"
+            helperText="Claro e escuro, com escolha persistida"
             icon={<Icon name="theme" size={18} />}
             label="Modos de tema"
             value={<span className="numeric">{summary.themeModeCount}</span>}

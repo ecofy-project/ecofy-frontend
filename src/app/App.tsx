@@ -1,14 +1,23 @@
 import { useEffect, type ReactNode } from 'react';
 import { ErrorState } from '../components/ui';
 import { FoundationPage } from '../features/foundation/pages/FoundationPage';
+import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
+import { BudgetsPage } from '../features/budgets/pages/BudgetsPage';
+import { CategoriesPage } from '../features/categories/pages/CategoriesPage';
+import { GoalsPage } from '../features/goals/pages/GoalsPage';
+import { ImportsPage } from '../features/imports/pages/ImportsPage';
+import { InsightsPage } from '../features/insights/pages/InsightsPage';
+import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
 import { ConfirmEmailPage } from '../features/auth/pages/ConfirmEmailPage';
 import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage';
+import { ConnectionsPage } from '../features/users/pages/ConnectionsPage';
+import { PreferencesPage } from '../features/users/pages/PreferencesPage';
+import { ProfilePage } from '../features/users/pages/ProfilePage';
 import { AppShell } from './layout/AppShell';
 import { navigationGroups } from './layout/navigation';
-import { PlaceholderPage } from './pages/PlaceholderPage';
 import { AppProviders } from './providers/AppProviders';
 import {
   ProtectedRoute,
@@ -16,25 +25,18 @@ import {
 } from './routing/route-guards';
 import { usePathname } from './routing/router';
 
-const placeholderDescriptions: Record<string, string> = {
-  '/imports':
-    'A navegação e o espaço da feature estão prontos; a importação funcional permanece fora desta etapa.',
-  '/categories':
-    'A navegação e o espaço da feature estão prontos; categorias e regras serão implementadas posteriormente.',
-  '/budgets':
-    'A navegação e o espaço da feature estão prontos; nenhum orçamento ou contrato foi antecipado.',
-  '/goals':
-    'A navegação e o espaço da feature estão prontos; metas e cálculos permanecem fora desta etapa.',
-  '/insights':
-    'A navegação e o espaço da feature estão prontos, inclusive para estados degradados futuros.',
-  '/notifications':
-    'A navegação e o espaço da feature estão prontos; não existem chamadas de notificação nesta etapa.',
-  '/profile':
-    'A navegação e o espaço da feature estão prontos; dados de perfil ainda não são solicitados.',
-  '/preferences':
-    'O tema local já funciona; preferências integradas à conta pertencem a uma etapa futura.',
-  '/connections':
-    'A navegação e o espaço da feature estão prontos; nenhuma conexão externa foi criada.',
+const routeSubtitles: Record<string, string> = {
+  '/': 'Seu resumo financeiro em um só lugar',
+  '/design-system': 'Fundamentos e componentes da interface',
+  '/imports': 'Envie e acompanhe suas movimentações',
+  '/categories': 'Organize transações com categorias e regras',
+  '/budgets': 'Acompanhe seus limites por categoria',
+  '/goals': 'Construa seus objetivos financeiros',
+  '/insights': 'Análises para decisões mais conscientes',
+  '/notifications': 'Atualizações importantes da sua conta',
+  '/profile': 'Seus dados pessoais e de acesso',
+  '/preferences': 'Ajuste a experiência do EcoFy',
+  '/connections': 'Gerencie integrações da sua conta',
 };
 
 const routeTitles = Object.fromEntries(
@@ -86,14 +88,27 @@ function ProtectedPage({ pathname }: { pathname: string }) {
   let content: ReactNode;
 
   if (pathname === '/') {
+    content = <DashboardPage />;
+  } else if (pathname === '/design-system') {
     content = <FoundationPage />;
-  } else if (placeholderDescriptions[pathname]) {
-    content = (
-      <PlaceholderPage
-        description={placeholderDescriptions[pathname]}
-        title={title}
-      />
-    );
+  } else if (pathname === '/profile') {
+    content = <ProfilePage />;
+  } else if (pathname === '/preferences') {
+    content = <PreferencesPage />;
+  } else if (pathname === '/connections') {
+    content = <ConnectionsPage />;
+  } else if (pathname === '/imports') {
+    content = <ImportsPage />;
+  } else if (pathname === '/categories') {
+    content = <CategoriesPage />;
+  } else if (pathname === '/budgets') {
+    content = <BudgetsPage />;
+  } else if (pathname === '/goals') {
+    content = <GoalsPage />;
+  } else if (pathname === '/insights') {
+    content = <InsightsPage />;
+  } else if (pathname === '/notifications') {
+    content = <NotificationsPage />;
   } else {
     content = (
       <ErrorState
@@ -105,7 +120,9 @@ function ProtectedPage({ pathname }: { pathname: string }) {
 
   return (
     <ProtectedRoute>
-      <AppShell pageTitle={title}>{content}</AppShell>
+      <AppShell pageSubtitle={routeSubtitles[pathname]} pageTitle={title}>
+        {content}
+      </AppShell>
     </ProtectedRoute>
   );
 }

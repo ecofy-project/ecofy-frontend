@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 
@@ -18,7 +17,6 @@ type ThemeContextValue = {
 };
 
 const storageKey = 'ecofy.theme';
-const darkModeQuery = '(prefers-color-scheme: dark)';
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function isThemePreference(value: string | null): value is ThemePreference {
@@ -34,30 +32,26 @@ function getInitialPreference(): ThemePreference {
   }
 }
 
-function subscribeToSystemTheme(callback: () => void) {
-  const mediaQuery = window.matchMedia(darkModeQuery);
-  mediaQuery.addEventListener('change', callback);
-  return () => mediaQuery.removeEventListener('change', callback);
-}
-
-function getSystemThemeSnapshot() {
-  return window.matchMedia(darkModeQuery).matches;
+function getSystemTheme(): ResolvedTheme {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreference] =
     useState<ThemePreference>(getInitialPreference);
-  const systemIsDark = useSyncExternalStore(
-    subscribeToSystemTheme,
-    getSystemThemeSnapshot,
-    () => false,
-  );
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme);
   const resolvedTheme: ResolvedTheme =
-    preference === 'system'
-      ? systemIsDark
-        ? 'dark'
-        : 'light'
-      : preference;
+    preference === 'system' ? systemTheme : preference;
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => setSystemTheme(media.matches ? 'dark' : 'light');
+    handleChange();
+    media.addEventListener('change', handleChange);
+    return () => media.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = resolvedTheme;

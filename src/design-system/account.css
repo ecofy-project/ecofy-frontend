@@ -1,0 +1,287 @@
+.account-page,
+.account-skeleton {
+  display: grid;
+  width: min(100%, 58rem);
+  gap: var(--space-6);
+}
+
+.account-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: end;
+  justify-content: space-between;
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.account-page__heading-copy {
+  display: grid;
+  max-width: 42rem;
+  gap: var(--space-2);
+}
+
+.account-page__eyebrow,
+.preference-card__key,
+.connection-card__code {
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-page__heading-copy > p,
+.profile-card__identity p,
+.preference-card__heading p,
+.connection-card__copy p,
+.connection-form__description {
+  color: var(--color-text-secondary);
+}
+
+.account-page__header-action {
+  flex: 0 0 auto;
+}
+
+.profile-card {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.7fr) minmax(0, 1.3fr);
+  gap: var(--space-8);
+  padding: 0;
+  overflow: hidden;
+}
+
+.profile-card__identity {
+  display: flex;
+  min-width: 0;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-8);
+  background-color: var(--color-surface-subtle);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2rem,
+    var(--color-ledger-line) calc(2rem + 1px),
+    var(--color-ledger-line) calc(2rem + 2px)
+  );
+  border-right: 1px solid var(--color-divider);
+}
+
+.profile-card__avatar {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  place-items: center;
+}
+
+.profile-card__identity > div {
+  min-width: 0;
+}
+
+.profile-card__identity h2,
+.profile-card__identity p {
+  overflow-wrap: anywhere;
+}
+
+.profile-card__identity h2 {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xl);
+}
+
+.profile-details {
+  display: grid;
+  align-content: center;
+  padding: var(--space-6);
+  margin: 0;
+}
+
+.profile-details > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.7fr) minmax(0, 1.3fr);
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.profile-details > div:first-child {
+  border-top: 0;
+}
+
+.profile-details dt {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.profile-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.account-form {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.profile-card > .account-form {
+  padding: var(--space-6);
+}
+
+.account-form__actions,
+.preferences-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: var(--space-2);
+}
+
+.preferences-form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.preferences-grid,
+.connections-grid,
+.account-skeleton__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.preference-card {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.preference-card__heading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.preference-card__heading h2,
+.connection-card__copy h2 {
+  font-size: var(--font-size-lg);
+}
+
+.preference-card__heading p,
+.connection-form__description {
+  font-size: var(--font-size-sm);
+}
+
+.connection-card {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.connection-card__top {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.connection-card__icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-md);
+  place-items: center;
+}
+
+.connection-card__copy {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.account-state-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.account-skeleton__heading,
+.account-skeleton__card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (max-width: 63.999rem) {
+  .profile-card {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card__identity {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-divider);
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .account-page,
+  .account-skeleton {
+    gap: var(--space-5);
+  }
+
+  .account-page__header {
+    align-items: stretch;
+  }
+
+  .account-page__header-action,
+  .account-page__header-action .button {
+    width: 100%;
+  }
+
+  .profile-card__identity {
+    align-items: flex-start;
+    padding: var(--space-5);
+  }
+
+  .profile-card__avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .profile-details,
+  .profile-card > .account-form {
+    padding: var(--space-5);
+  }
+
+  .profile-details > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .preferences-grid,
+  .connections-grid,
+  .account-skeleton__cards {
+    grid-template-columns: 1fr;
+  }
+
+  .account-form__actions,
+  .preferences-form__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .account-form__actions .button,
+  .preferences-form__actions .button {
+    width: 100%;
+  }
+}

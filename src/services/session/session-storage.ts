@@ -88,13 +88,19 @@ function parsePersistedSession(value: string): PersistedSession | null {
   }
 }
 
-export function createSessionStoragePersistence(): SessionPersistence {
+export function createSessionPersistence(
+  storageType: 'local' | 'session' = 'session',
+): SessionPersistence {
   let memoryFallback: PersistedSession | null = null;
+
+  function getStorage() {
+    return storageType === 'local' ? window.localStorage : window.sessionStorage;
+  }
 
   return {
     read() {
       try {
-        const storedValue = window.sessionStorage.getItem(storageKey);
+        const storedValue = getStorage().getItem(storageKey);
         return storedValue
           ? (parsePersistedSession(storedValue) ?? memoryFallback)
           : memoryFallback;
@@ -106,7 +112,7 @@ export function createSessionStoragePersistence(): SessionPersistence {
       memoryFallback = session;
 
       try {
-        window.sessionStorage.setItem(storageKey, JSON.stringify(session));
+        getStorage().setItem(storageKey, JSON.stringify(session));
       } catch {
         // O fallback em memória mantém a sessão enquanto esta aba existir.
       }
@@ -115,10 +121,14 @@ export function createSessionStoragePersistence(): SessionPersistence {
       memoryFallback = null;
 
       try {
-        window.sessionStorage.removeItem(storageKey);
+        getStorage().removeItem(storageKey);
       } catch {
         // A limpeza em memória ainda garante logout para a aplicação atual.
       }
     },
   };
+}
+
+export function createSessionStoragePersistence(): SessionPersistence {
+  return createSessionPersistence('session');
 }

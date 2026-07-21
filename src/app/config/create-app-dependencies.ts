@@ -1,58 +1,136 @@
 import { ApiAuthDataSource } from '../../features/auth/data-sources/api-auth-data-source';
 import type { AuthDataSource } from '../../features/auth/data-sources/auth-data-source';
 import { AuthService } from '../../features/auth/services/auth-service';
+import {
+  ApiBudgetDataSource,
+  ApiCategorizationDataSource,
+  ApiDashboardDataSource,
+  ApiGoalDataSource,
+  ApiImportDataSource,
+  ApiInsightsDataSource,
+  ApiNotificationDataSource,
+} from '../../features/demo/data-sources/api-demo-data-sources';
+import type { DemoDataSources } from '../../features/demo/data-sources/demo-data-sources';
+import { DemoService } from '../../features/demo/services/demo-service';
 import { ApiFoundationDataSource } from '../../features/foundation/data-sources/api-foundation-data-source';
 import type { FoundationDataSource } from '../../features/foundation/data-sources/foundation-data-source';
 import { FoundationService } from '../../features/foundation/services/foundation-service';
+import { ApiUserDataSource } from '../../features/users/data-sources/api-user-data-source';
+import type { UserDataSource } from '../../features/users/data-sources/user-data-source';
+import { UserService } from '../../features/users/services/user-service';
 import { MockAuthDataSource } from '../../mocks/data-sources/mock-auth-data-source';
+import {
+  MockBudgetDataSource,
+  MockCategorizationDataSource,
+  MockDashboardDataSource,
+  MockGoalDataSource,
+  MockImportDataSource,
+  MockInsightsDataSource,
+  MockNotificationDataSource,
+} from '../../mocks/data-sources/mock-demo-data-sources';
 import { MockFoundationDataSource } from '../../mocks/data-sources/mock-foundation-data-source';
+import { MockUserDataSource } from '../../mocks/data-sources/mock-user-data-source';
+import { createDemoPersistence, DemoStore } from '../../mocks/demo/demo-store';
 import { getFrontendConfig } from '../../services/config/env';
-import { resolveDataSource } from '../../services/data-source';
 import { HttpClient } from '../../services/http';
-import { createSessionStoragePersistence } from '../../services/session/session-storage';
+import { createSessionPersistence } from '../../services/session/session-storage';
 import { SessionStore } from '../../services/session/session-store';
 
 export type AppDependencies = Readonly<{
   authService: AuthService;
   foundationService: FoundationService;
+  userService: UserService;
+  demoService: DemoService;
+  demoStore?: DemoStore;
+  demoEnabled: boolean;
   sessionStore: SessionStore;
 }>;
 
+function createApiDependencies(
+  gatewayUrl: string,
+  authClientId: string | undefined,
+  sessionStore: SessionStore,
+) {
+  const httpClient = new HttpClient({
+    baseUrl: gatewayUrl,
+    session: { getAccessToken: sessionStore.getAccessToken },
+  });
+  const demoDataSources: DemoDataSources = {
+    dashboard: new ApiDashboardDataSource(),
+    categorization: new ApiCategorizationDataSource(),
+    budget: new ApiBudgetDataSource(),
+    imports: new ApiImportDataSource(),
+    goals: new ApiGoalDataSource(),
+    insights: new ApiInsightsDataSource(),
+    notifications: new ApiNotificationDataSource(),
+  };
+
+  return {
+    authDataSource: new ApiAuthDataSource(httpClient, authClientId),
+    foundationDataSource: new ApiFoundationDataSource(httpClient),
+    userDataSource: new ApiUserDataSource(httpClient),
+    demoDataSources,
+  };
+}
+
 export function createAppDependencies(): AppDependencies {
   const config = getFrontendConfig();
-  const sessionStore = new SessionStore(createSessionStoragePersistence());
-  const httpClient = new HttpClient({
-    baseUrl: config.apiGatewayUrl,
-    session: {
-      getAccessToken: sessionStore.getAccessToken,
-    },
-  });
-  const authDataSource = resolveDataSource<AuthDataSource>(config.dataMode, {
-    mock: () =>
-      new MockAuthDataSource({
-        scenario: config.mockAuthScenario,
-        delayMs: config.mockDelayMs,
-        roles: config.mockUserRoles,
-        permissions: config.mockUserPermissions,
-      }),
-    api: () => new ApiAuthDataSource(httpClient, config.authClientId),
-  });
-  const foundationDataSource = resolveDataSource<FoundationDataSource>(
-    config.dataMode,
-    {
-      mock: () =>
-        new MockFoundationDataSource({
-          scenario: config.mockScenario,
-          delayMs: config.mockDelayMs,
-        }),
-      api: () =>
-        new ApiFoundationDataSource(httpClient),
-    },
+  const sessionStore = new SessionStore(
+    createSessionPersistence(config.dataMode === 'mock' ? 'local' : 'session'),
   );
+
+  let authDataSource: AuthDataSource;
+  let foundationDataSource: FoundationDataSource;
+  let userDataSource: UserDataSource;
+  let demoDataSources: DemoDataSources;
+  let demoStore: DemoStore | undefined;
+
+  if (config.dataMode === 'mock') {
+    demoStore = new DemoStore(createDemoPersistence());
+    const options = {
+      scenario: config.mockScenario,
+      delayMs: config.mockDelayMs,
+    };
+    authDataSource = new MockAuthDataSource(demoStore, {
+      scenario: config.mockAuthScenario,
+      delayMs: config.mockDelayMs,
+      roles: config.mockUserRoles,
+      permissions: config.mockUserPermissions,
+    });
+    foundationDataSource = new MockFoundationDataSource(options);
+    userDataSource = new MockUserDataSource(demoStore, options);
+    demoDataSources = {
+      dashboard: new MockDashboardDataSource(demoStore, options),
+      categorization: new MockCategorizationDataSource(demoStore, options),
+      budget: new MockBudgetDataSource(demoStore, options),
+      imports: new MockImportDataSource(demoStore, options),
+      goals: new MockGoalDataSource(demoStore, options),
+      insights: new MockInsightsDataSource(demoStore, options),
+      notifications: new MockNotificationDataSource(demoStore, options),
+    };
+  } else {
+    if (!config.apiGatewayUrl) {
+      throw new Error('O API Gateway é obrigatório no modo API.');
+    }
+
+    const api = createApiDependencies(
+      config.apiGatewayUrl,
+      config.authClientId,
+      sessionStore,
+    );
+    authDataSource = api.authDataSource;
+    foundationDataSource = api.foundationDataSource;
+    userDataSource = api.userDataSource;
+    demoDataSources = api.demoDataSources;
+  }
 
   return Object.freeze({
     authService: new AuthService(authDataSource),
     foundationService: new FoundationService(foundationDataSource),
+    userService: new UserService(userDataSource),
+    demoService: new DemoService(demoDataSources),
+    ...(demoStore ? { demoStore } : {}),
+    demoEnabled: config.dataMode === 'mock',
     sessionStore,
   });
 }

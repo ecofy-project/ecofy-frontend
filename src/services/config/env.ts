@@ -1,4 +1,9 @@
-export type AppEnvironment = 'development' | 'test' | 'staging' | 'production';
+export type AppEnvironment =
+  | 'development'
+  | 'test'
+  | 'staging'
+  | 'production'
+  | 'demo';
 export type AppDataMode = 'mock' | 'api';
 export type MockScenario =
   | 'default'
@@ -6,7 +11,11 @@ export type MockScenario =
   | 'error'
   | 'loading'
   | 'degraded'
-  | 'processing';
+  | 'processing'
+  | 'profile-incomplete'
+  | 'preferences-empty'
+  | 'connections-empty'
+  | 'connections-multiple';
 export type MockAuthScenario =
   | 'success'
   | 'invalid_credentials'
@@ -15,7 +24,7 @@ export type MockAuthScenario =
   | 'server_error';
 
 export type FrontendConfig = Readonly<{
-  apiGatewayUrl: string;
+  apiGatewayUrl?: string;
   dataMode: AppDataMode;
   authClientId?: string;
   appEnv: AppEnvironment;
@@ -33,6 +42,7 @@ const supportedAppEnvironments = new Set<AppEnvironment>([
   'test',
   'staging',
   'production',
+  'demo',
 ]);
 
 const supportedDataModes = new Set<AppDataMode>(['mock', 'api']);
@@ -43,6 +53,10 @@ const supportedMockScenarios = new Set<MockScenario>([
   'loading',
   'degraded',
   'processing',
+  'profile-incomplete',
+  'preferences-empty',
+  'connections-empty',
+  'connections-multiple',
 ]);
 const supportedMockAuthScenarios = new Set<MockAuthScenario>([
   'success',
@@ -69,7 +83,7 @@ function readAppEnvironment(value: string | undefined): AppEnvironment {
 
   if (!supportedAppEnvironments.has(normalized as AppEnvironment)) {
     throw new Error(
-      `VITE_APP_ENV inválido: "${normalized}". Use development, test, staging ou production.`,
+      `VITE_APP_ENV inválido: "${normalized}". Use development, test, staging, production ou demo.`,
     );
   }
 
@@ -81,7 +95,7 @@ function readMockScenario(value: string | undefined): MockScenario {
 
   if (!supportedMockScenarios.has(normalized as MockScenario)) {
     throw new Error(
-      `VITE_MOCK_SCENARIO inválido: "${normalized}". Use default, empty, error, loading, degraded ou processing.`,
+      `VITE_MOCK_SCENARIO inválido: "${normalized}". Use default, empty, error, loading, degraded, processing, profile-incomplete, preferences-empty, connections-empty ou connections-multiple.`,
     );
   }
 
@@ -192,15 +206,11 @@ export function loadFrontendConfig(
     typeof source.VITE_API_GATEWAY_URL === 'string'
       ? source.VITE_API_GATEWAY_URL.trim()
       : '';
-  const localFallback =
-    appEnv === 'development' || dataMode === 'mock'
-      ? 'http://localhost:8080'
-      : undefined;
-  const gateway = configuredGateway || localFallback;
+  const gateway = configuredGateway || undefined;
 
-  if (!gateway) {
+  if (dataMode === 'api' && !gateway) {
     throw new Error(
-      'VITE_API_GATEWAY_URL é obrigatória fora do ambiente de desenvolvimento.',
+      'VITE_API_GATEWAY_URL é obrigatória quando VITE_APP_DATA_MODE=api.',
     );
   }
 
@@ -235,7 +245,7 @@ export function loadFrontendConfig(
   );
 
   return Object.freeze({
-    apiGatewayUrl: normalizeGatewayUrl(gateway),
+    ...(gateway ? { apiGatewayUrl: normalizeGatewayUrl(gateway) } : {}),
     dataMode,
     authClientId,
     appEnv,

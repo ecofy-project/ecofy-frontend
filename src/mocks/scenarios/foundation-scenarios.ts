@@ -52,6 +52,10 @@ export function resolveFoundationMockScenario(
       };
     case 'default':
     case 'loading':
+    case 'profile-incomplete':
+    case 'preferences-empty':
+    case 'connections-empty':
+    case 'connections-multiple':
       return { kind: 'success', data: defaultFoundationSummary };
   }
 }

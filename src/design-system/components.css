@@ -3,10 +3,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-weight: 650;
+  font-size: 0.84375rem;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
   transition:
@@ -18,26 +19,25 @@
 
 .button {
   gap: var(--space-2);
-  padding: 0.75rem var(--space-4);
-}
-
-.button:hover:not(:disabled) {
-  transform: translateY(-1px);
+  padding: 0.625rem var(--space-4);
 }
 
 .button:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(1px);
 }
 
 .button:disabled,
 .icon-button:disabled {
+  color: var(--color-disabled-text);
   cursor: not-allowed;
-  opacity: 0.52;
+  background: var(--color-disabled-bg);
+  opacity: 1;
 }
 
 .button--primary {
   color: var(--color-text-on-primary);
   background: var(--color-primary);
+  box-shadow: 0 4px 12px -4px #0e9c6e99;
 }
 
 .button--primary:hover:not(:disabled) {
@@ -49,13 +49,14 @@
 }
 
 .button--secondary {
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
 }
 
 .button--secondary:hover:not(:disabled) {
-  color: var(--color-primary-hover);
-  background: var(--color-secondary-soft);
+  background: var(--color-hover);
+  border-color: var(--color-primary);
 }
 
 .button--outline {
@@ -76,13 +77,17 @@
 
 .button--ghost:hover:not(:disabled),
 .icon-button:hover:not(:disabled) {
-  color: var(--color-text-primary);
-  background: var(--color-surface-subtle);
+  color: var(--color-primary-hover);
+  background: var(--color-primary-soft);
 }
 
 .button--danger {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
+  color: #ffffff;
+  background: var(--color-danger);
+}
+
+.button--danger:hover:not(:disabled) {
+  background: var(--color-danger-strong);
 }
 
 .button--sm {
@@ -92,7 +97,7 @@
 }
 
 .button--lg {
-  min-height: 3.25rem;
+  min-height: 2.875rem;
   padding-inline: var(--space-5);
 }
 
@@ -101,8 +106,8 @@
 }
 
 .icon-button {
-  width: 2.75rem;
-  min-width: 2.75rem;
+  width: 2.5rem;
+  min-width: 2.5rem;
   padding: 0;
 }
 
@@ -113,8 +118,8 @@
 }
 
 .button__spinner {
-  width: 1rem;
-  height: 1rem;
+  width: 0.875rem;
+  height: 0.875rem;
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: var(--radius-pill);
@@ -162,8 +167,8 @@ fieldset.field {
 .combobox,
 .currency-input {
   width: 100%;
-  min-height: 2.75rem;
-  padding: 0.7rem var(--space-3);
+  min-height: 2.625rem;
+  padding: 0.625rem var(--space-3);
   color: var(--color-text-primary);
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
@@ -190,7 +195,7 @@ fieldset.field {
 .currency-input:focus {
   border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  box-shadow: 0 0 0 3px var(--color-input-focus-ring);
 }
 
 .field__control:disabled,
@@ -207,6 +212,7 @@ fieldset.field {
 .field--error .combobox,
 .field--error .currency-input {
   border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger-soft) 68%, var(--color-surface));
 }
 
 .field__message {
@@ -215,7 +221,25 @@ fieldset.field {
 }
 
 .field--error .field__message {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
   color: var(--color-danger);
+}
+
+.field--error .field__message::before {
+  display: grid;
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: 0 0 auto;
+  content: '!';
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
+  place-items: center;
 }
 
 .field__trailing {
@@ -349,32 +373,50 @@ fieldset.field {
   align-items: center;
   gap: var(--space-1);
   width: fit-content;
-  min-height: 1.5rem;
-  padding: 0.2rem var(--space-2);
+  min-height: 1.75rem;
+  padding: 0.25rem var(--space-2);
   color: var(--color-text-secondary);
   background: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-xs);
-  font-weight: 650;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
   line-height: 1;
 }
 
 .badge--success {
-  color: var(--color-success);
+  color: var(--color-success-strong);
   background: var(--color-success-soft);
   border-color: transparent;
 }
 
 .badge--warning {
-  color: var(--color-warning);
+  color: var(--color-warning-strong);
   background: var(--color-warning-soft);
   border-color: transparent;
 }
 
+.badge--near-limit {
+  color: var(--color-near-limit-strong);
+  background: var(--color-near-limit-soft);
+  border-color: transparent;
+}
+
 .badge--danger {
-  color: var(--color-danger);
+  color: var(--color-danger-strong);
   background: var(--color-danger-soft);
+  border-color: transparent;
+}
+
+.badge--processing {
+  color: var(--color-processing-strong);
+  background: var(--color-processing-soft);
+  border-color: transparent;
+}
+
+.badge--paused {
+  color: var(--color-text-secondary);
+  background: var(--color-paused-soft);
   border-color: transparent;
 }
 
@@ -385,11 +427,89 @@ fieldset.field {
 }
 
 .status-badge::before {
-  width: 0.4rem;
-  height: 0.4rem;
+  width: 0.4375rem;
+  height: 0.4375rem;
   content: '';
   background: currentColor;
-  border-radius: var(--radius-pill);
+  border-radius: 0.125rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 0.5625rem;
+  overflow: hidden;
+  background: var(--color-track);
+  border-radius: 1.25rem;
+}
+
+.progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--progress-color, var(--color-success));
+  border-radius: inherit;
+  transition: width var(--duration-normal) var(--ease-standard);
+}
+
+.progress-bar--warning,
+.progress-ring--warning {
+  --progress-color: var(--color-warning);
+}
+
+.progress-bar--near-limit,
+.progress-ring--near-limit {
+  --progress-color: var(--color-near-limit);
+}
+
+.progress-bar--danger,
+.progress-ring--danger {
+  --progress-color: var(--color-danger);
+}
+
+.progress-bar--processing,
+.progress-ring--processing {
+  --progress-color: var(--color-processing);
+}
+
+.progress-bar--info,
+.progress-ring--info {
+  --progress-color: var(--color-info);
+}
+
+.progress-ring {
+  position: relative;
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.progress-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-ring circle {
+  fill: none;
+  stroke-width: 6;
+}
+
+.progress-ring__track {
+  stroke: var(--color-track);
+}
+
+.progress-ring__value {
+  stroke: var(--progress-color, var(--color-success));
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--duration-normal) var(--ease-standard);
+}
+
+.progress-ring strong {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 .card {
@@ -404,12 +524,14 @@ fieldset.field {
 .card--interactive {
   transition:
     border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard);
 }
 
 .card--interactive:hover {
   border-color: var(--color-border-strong);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .metric-card {
@@ -417,14 +539,16 @@ fieldset.field {
   display: grid;
   gap: var(--space-4);
   overflow: hidden;
+  padding: 1.125rem;
+  border-radius: 1rem;
+  transition:
+    box-shadow var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
 }
 
-.metric-card::before {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  content: '';
-  background: var(--metric-accent, var(--color-primary));
+.metric-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .metric-card__top {
@@ -436,30 +560,37 @@ fieldset.field {
 
 .metric-card__label {
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 620;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .metric-card__icon {
   display: grid;
   width: 2rem;
   height: 2rem;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
+  color: var(--metric-accent, var(--color-primary));
+  background: color-mix(
+    in srgb,
+    var(--metric-accent, var(--color-primary)) 12%,
+    var(--color-surface)
+  );
   border-radius: var(--radius-sm);
   place-items: center;
 }
 
 .metric-card__value {
   font-size: var(--font-size-metric);
-  font-weight: 720;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1;
 }
 
 .metric-card__helper {
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
 }
 
 .alert {

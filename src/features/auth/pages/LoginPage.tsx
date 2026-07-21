@@ -1,10 +1,12 @@
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
+  Alert,
   Button,
   Card,
   Input,
   PasswordInput,
 } from '../../../components/ui';
+import { useDemo } from '../../../app/providers/DemoProvider';
 import { AppLink, navigate } from '../../../app/routing/router';
 import { useLoginForm } from '../hooks/use-login-form';
 import { AuthErrorAlert } from '../components/AuthErrorAlert';
@@ -12,12 +14,29 @@ import { AuthLayout } from '../components/AuthLayout';
 
 export function LoginPage() {
   const form = useLoginForm();
+  const demo = useDemo();
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState('');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (await form.submit()) {
       navigate('/');
+    }
+  }
+
+  async function handleEnterDemo() {
+    setDemoLoading(true);
+    setDemoError('');
+
+    try {
+      await demo.enterDemo();
+      navigate('/');
+    } catch {
+      setDemoError('Não foi possível iniciar a demonstração. Tente novamente.');
+    } finally {
+      setDemoLoading(false);
     }
   }
 
@@ -31,6 +50,37 @@ export function LoginPage() {
         </header>
 
         {form.error ? <AuthErrorAlert error={form.error} /> : null}
+        {demoError ? (
+          <Alert title="Demonstração indisponível" tone="danger">
+            {demoError}
+          </Alert>
+        ) : null}
+
+        {demo.enabled ? (
+          <div className="demo-login-panel">
+            <div>
+              <span className="demo-eyebrow">PORTFÓLIO INTERATIVO</span>
+              <h3>Conheça o EcoFy com dados fictícios</h3>
+              <p>
+                Explore todos os módulos sem conectar banco, API ou conta real.
+              </p>
+            </div>
+            <Button
+              fullWidth
+              leadingIcon="leaf"
+              loading={demoLoading}
+              onClick={handleEnterDemo}
+              size="lg"
+              variant="secondary"
+            >
+              Explorar demonstração
+            </Button>
+            <p className="demo-login-panel__credentials">
+              Acesso manual: <strong>{demo.credentials.username}</strong> · senha{' '}
+              <strong>{demo.credentials.password}</strong>
+            </p>
+          </div>
+        ) : null}
 
         <form
           aria-label="Acesso à conta"
@@ -64,7 +114,9 @@ export function LoginPage() {
           />
           <div className="auth-form__between">
             <span className="text-caption text-muted">
-              Seus dados são enviados somente ao API Gateway.
+              {demo.enabled
+                ? 'No modo demo, os dados ficam somente neste navegador.'
+                : 'Seus dados são enviados somente ao API Gateway.'}
             </span>
             <AppLink className="auth-link" to="/forgot-password">
               Esqueci minha senha

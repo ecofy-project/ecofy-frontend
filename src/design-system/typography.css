@@ -17,34 +17,37 @@ p {
 h1,
 .text-page-title {
   font-size: var(--font-size-2xl);
-  font-weight: 720;
-  letter-spacing: -0.035em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   line-height: var(--line-height-tight);
 }
 
 h2,
 .text-section-title {
   font-size: var(--font-size-xl);
-  font-weight: 680;
-  letter-spacing: -0.025em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   line-height: var(--line-height-heading);
 }
 
 h3,
 .text-card-title {
-  font-size: var(--font-size-md);
-  font-weight: 680;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
   line-height: var(--line-height-heading);
 }
 
 .text-label {
-  font-size: var(--font-size-sm);
-  font-weight: 620;
-  line-height: 1.35;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .text-caption {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   line-height: 1.4;
 }
 
@@ -53,10 +56,13 @@ h3,
 }
 
 .numeric,
+.num,
 .money-display,
 .metric-card__value,
 input[inputmode='decimal'],
 input[type='date'] {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
+  letter-spacing: -0.01em;
 }

@@ -1,7 +1,15 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { IconButton } from './actions';
 
-export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+export type BadgeTone =
+  | 'neutral'
+  | 'success'
+  | 'warning'
+  | 'near-limit'
+  | 'danger'
+  | 'processing'
+  | 'paused'
+  | 'info';
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   tone?: BadgeTone;
@@ -47,6 +55,68 @@ export function Card({
     >
       {children}
     </Component>
+  );
+}
+
+type ProgressProps = {
+  value: number;
+  label: string;
+  tone?: BadgeTone;
+};
+
+function clampPercentage(value: number) {
+  return Math.min(100, Math.max(0, value));
+}
+
+export function ProgressBar({
+  label,
+  tone = 'success',
+  value,
+}: ProgressProps) {
+  const percentage = clampPercentage(value);
+
+  return (
+    <div
+      aria-label={label}
+      aria-valuemax={100}
+      aria-valuemin={0}
+      aria-valuenow={percentage}
+      className={`progress-bar progress-bar--${tone}`}
+      role="progressbar"
+    >
+      <span style={{ width: `${percentage}%` }} />
+    </div>
+  );
+}
+
+export function ProgressRing({
+  label,
+  tone = 'success',
+  value,
+}: ProgressProps) {
+  const percentage = clampPercentage(value);
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <div className={`progress-ring progress-ring--${tone}`}>
+      <svg
+        aria-label={`${label}: ${percentage}%`}
+        role="img"
+        viewBox="0 0 72 72"
+      >
+        <circle className="progress-ring__track" cx="36" cy="36" r={radius} />
+        <circle
+          className="progress-ring__value"
+          cx="36"
+          cy="36"
+          r={radius}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - percentage / 100)}
+        />
+      </svg>
+      <strong className="numeric">{percentage}%</strong>
+    </div>
   );
 }
 

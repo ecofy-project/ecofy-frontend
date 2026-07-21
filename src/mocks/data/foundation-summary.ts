@@ -8,7 +8,7 @@ export const defaultFoundationSummary: FoundationSummary = Object.freeze({
     'Interface acessível',
   ]),
   demonstrationAmount: fromCents(1_240_000, 'BRL'),
-  themeModeCount: 3,
+  themeModeCount: 2,
   responsiveRangeCount: 4,
   statusLabel: 'Mock mode operacional',
   sourceNotice:

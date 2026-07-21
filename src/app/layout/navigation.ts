@@ -4,6 +4,7 @@ export type NavigationItem = {
   label: string;
   path: string;
   icon: IconName;
+  badge?: number;
 };
 
 export type NavigationGroup = {
@@ -13,6 +14,16 @@ export type NavigationGroup = {
 
 export const navigationGroups: NavigationGroup[] = [
   {
+    label: 'Sistema',
+    items: [
+      {
+        label: 'Design System',
+        path: '/design-system',
+        icon: 'theme',
+      },
+    ],
+  },
+  {
     label: 'Visão geral',
     items: [{ label: 'Dashboard', path: '/', icon: 'dashboard' }],
   },
@@ -20,7 +31,11 @@ export const navigationGroups: NavigationGroup[] = [
     label: 'Finanças',
     items: [
       { label: 'Importações', path: '/imports', icon: 'imports' },
-      { label: 'Categorias', path: '/categories', icon: 'categories' },
+      {
+        label: 'Categorias & Regras',
+        path: '/categories',
+        icon: 'categories',
+      },
     ],
   },
   {
@@ -41,6 +56,7 @@ export const navigationGroups: NavigationGroup[] = [
         label: 'Notificações',
         path: '/notifications',
         icon: 'notifications',
+        badge: 3,
       },
     ],
   },

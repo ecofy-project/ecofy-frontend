@@ -221,8 +221,14 @@ export class HttpClient {
 export function createGatewayHttpClient(
   options: Omit<HttpClientOptions, 'baseUrl'> = {},
 ) {
+  const gatewayUrl = getFrontendConfig().apiGatewayUrl;
+
+  if (!gatewayUrl) {
+    throw new Error('O API Gateway não está configurado para este ambiente.');
+  }
+
   return new HttpClient({
     ...options,
-    baseUrl: getFrontendConfig().apiGatewayUrl,
+    baseUrl: gatewayUrl,
   });
 }

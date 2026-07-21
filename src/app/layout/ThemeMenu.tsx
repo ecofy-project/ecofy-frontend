@@ -1,38 +1,21 @@
-import {
-  Dropdown,
-  DropdownItem,
-  IconButton,
-} from '../../components/ui';
-import {
-  useTheme,
-  type ThemePreference,
-} from '../providers/ThemeProvider';
-
-const themeLabels: Record<ThemePreference, string> = {
-  light: 'Claro',
-  dark: 'Escuro',
-  system: 'Sistema',
-};
+import { IconButton } from '../../components/ui';
+import { useTheme } from '../providers/ThemeProvider';
 
 export function ThemeMenu() {
   const { preference, resolvedTheme, setPreference } = useTheme();
+  const nextTheme =
+    preference === 'light' ? 'dark' : preference === 'dark' ? 'system' : 'light';
+  const nextLabel = {
+    light: 'claro',
+    dark: 'escuro',
+    system: 'do sistema',
+  }[nextTheme];
 
   return (
-    <Dropdown
-      label="Escolher tema"
-      trigger={
-        <IconButton
-          icon="theme"
-          label={`Tema: ${themeLabels[preference]} (${resolvedTheme})`}
-        />
-      }
-    >
-      {(['light', 'dark', 'system'] as const).map((theme) => (
-        <DropdownItem key={theme} onSelect={() => setPreference(theme)}>
-          <span aria-hidden="true">{preference === theme ? '✓' : ' '}</span>
-          {themeLabels[theme]}
-        </DropdownItem>
-      ))}
-    </Dropdown>
+    <IconButton
+      icon={preference === 'system' ? 'theme' : resolvedTheme === 'light' ? 'sun' : 'moon'}
+      label={`Ativar tema ${nextLabel}`}
+      onClick={() => setPreference(nextTheme)}
+    />
   );
 }

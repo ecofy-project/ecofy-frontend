@@ -14,6 +14,8 @@ import type {
   RegisterUserInput,
 } from '../../features/auth/types/auth';
 import { simulateMockLatency } from '../shared/mock-runtime';
+import type { DemoStore } from '../demo/demo-store';
+import { demoCredentials } from '../demo/demo-seed';
 
 type MockAuthDataSourceOptions = {
   scenario: MockAuthScenario;
@@ -68,7 +70,10 @@ function throwScenarioError(scenario: MockAuthScenario): void {
 }
 
 export class MockAuthDataSource implements AuthDataSource {
-  constructor(private readonly options: MockAuthDataSourceOptions) {}
+  constructor(
+    private readonly store: DemoStore,
+    private readonly options: MockAuthDataSourceOptions,
+  ) {}
 
   async login(
     credentials: LoginCredentials,
@@ -85,25 +90,30 @@ export class MockAuthDataSource implements AuthDataSource {
 
     throwScenarioError(this.options.scenario);
 
-    const email = credentials.username.includes('@')
-      ? credentials.username
-      : 'pessoa.mock@ecofy.local';
+    if (
+      credentials.username.trim().toLowerCase() !== demoCredentials.username ||
+      credentials.password !== demoCredentials.password
+    ) {
+      throwMockError(
+        401,
+        'INVALID_CREDENTIALS',
+        'Use as credenciais fictícias exibidas para acessar a demonstração.',
+      );
+    }
+
+    const user = this.store.getState().user;
 
     return {
       tokens: {
         tokenType: 'Bearer',
-        accessToken: 'mock-access-token-for-local-development',
-        refreshToken: 'mock-refresh-token-for-local-development',
+        accessToken: 'demo-session-access-token',
+        refreshToken: 'demo-session-refresh-token',
         expiresIn: 3600,
       },
       currentUser: {
-        id: 'mock-user-id',
-        email,
-        fullName: 'Pessoa EcoFy (Mock)',
-        status: 'MOCK_ACTIVE',
-        emailVerified: true,
-        roles: this.options.roles ?? [],
-        permissions: this.options.permissions ?? [],
+        ...user,
+        roles: this.options.roles ?? user.roles,
+        permissions: this.options.permissions ?? user.permissions,
       },
     };
   }
@@ -150,14 +160,11 @@ export class MockAuthDataSource implements AuthDataSource {
     await simulateMockLatency(this.options.delayMs);
     throwScenarioError(this.options.scenario);
 
+    const user = this.store.getState().user;
     return {
-      id: 'mock-user-id',
-      email: 'pessoa.mock@ecofy.local',
-      fullName: 'Pessoa EcoFy (Mock)',
-      status: 'MOCK_ACTIVE',
-      emailVerified: true,
-      roles: this.options.roles ?? [],
-      permissions: this.options.permissions ?? [],
+      ...user,
+      roles: this.options.roles ?? user.roles,
+      permissions: this.options.permissions ?? user.permissions,
     };
   }
 }

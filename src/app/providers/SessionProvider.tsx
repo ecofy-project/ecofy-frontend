@@ -7,12 +7,16 @@ import {
   type ReactNode,
 } from 'react';
 import type { LoginCredentials } from '../../features/auth/types/auth';
+import type { UserProfile } from '../../features/users/types/user';
 import type { SessionSnapshot } from '../../services/session/session-store';
 import { useAppDependencies } from './AppDependenciesProvider';
 
 type SessionContextValue = SessionSnapshot & {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
+  updateCurrentUserDetails: (
+    details: Pick<UserProfile, 'fullName' | 'email'>,
+  ) => void;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -47,9 +51,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     sessionStore.clearSession();
   }, [sessionStore]);
 
+  const updateCurrentUserDetails = useCallback(
+    (details: Pick<UserProfile, 'fullName' | 'email'>) => {
+      if (!snapshot.currentUser) {
+        return;
+      }
+
+      sessionStore.setCurrentUser({
+        ...snapshot.currentUser,
+        fullName: details.fullName,
+        email: details.email,
+      });
+    },
+    [sessionStore, snapshot.currentUser],
+  );
+
   const value = useMemo(
-    () => ({ ...snapshot, login, logout }),
-    [login, logout, snapshot],
+    () => ({ ...snapshot, login, logout, updateCurrentUserDetails }),
+    [login, logout, snapshot, updateCurrentUserDetails],
   );
 
   return (
