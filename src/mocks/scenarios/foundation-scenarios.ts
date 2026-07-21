@@ -56,6 +56,9 @@ export function resolveFoundationMockScenario(
     case 'preferences-empty':
     case 'connections-empty':
     case 'connections-multiple':
+    case 'categories-empty':
+    case 'category-create-error':
+    case 'manual-error':
       return { kind: 'success', data: defaultFoundationSummary };
   }
 }

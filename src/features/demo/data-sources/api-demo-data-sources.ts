@@ -1,7 +1,6 @@
 import { ApiErrorException } from '../../../services/errors/api-error';
 import type {
   BudgetDataSource,
-  CategorizationDataSource,
   DashboardDataSource,
   GoalDataSource,
   ImportDataSource,
@@ -19,11 +18,6 @@ function backendContractUnavailable(): never {
 
 export class ApiDashboardDataSource implements DashboardDataSource {
   getDashboard = async () => backendContractUnavailable();
-}
-
-export class ApiCategorizationDataSource implements CategorizationDataSource {
-  getCategorizationOverview = async () => backendContractUnavailable();
-  createCategory = async () => backendContractUnavailable();
 }
 
 export class ApiBudgetDataSource implements BudgetDataSource {

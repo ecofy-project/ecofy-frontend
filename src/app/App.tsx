@@ -4,6 +4,8 @@ import { FoundationPage } from '../features/foundation/pages/FoundationPage';
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
 import { BudgetsPage } from '../features/budgets/pages/BudgetsPage';
 import { CategoriesPage } from '../features/categories/pages/CategoriesPage';
+import { ManualCategorizationPage } from '../features/categories/pages/ManualCategorizationPage';
+import { SuggestionsPage } from '../features/categories/pages/SuggestionsPage';
 import { GoalsPage } from '../features/goals/pages/GoalsPage';
 import { ImportsPage } from '../features/imports/pages/ImportsPage';
 import { InsightsPage } from '../features/insights/pages/InsightsPage';
@@ -30,6 +32,8 @@ const routeSubtitles: Record<string, string> = {
   '/design-system': 'Fundamentos e componentes da interface',
   '/imports': 'Envie e acompanhe suas movimentações',
   '/categories': 'Organize transações com categorias e regras',
+  '/categorization/manual': 'Aplique uma categoria diretamente em uma transação',
+  '/categorization/suggestions': 'Consulte as sugestões registradas pelo serviço',
   '/budgets': 'Acompanhe seus limites por categoria',
   '/goals': 'Construa seus objetivos financeiros',
   '/insights': 'Análises para decisões mais conscientes',
@@ -101,6 +105,10 @@ function ProtectedPage({ pathname }: { pathname: string }) {
     content = <ImportsPage />;
   } else if (pathname === '/categories') {
     content = <CategoriesPage />;
+  } else if (pathname === '/categorization/manual') {
+    content = <ManualCategorizationPage />;
+  } else if (pathname === '/categorization/suggestions') {
+    content = <SuggestionsPage />;
   } else if (pathname === '/budgets') {
     content = <BudgetsPage />;
   } else if (pathname === '/goals') {

@@ -1,170 +1,126 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import { Button, Card, EmptyState, StatusBadge } from '../../../components/ui';
 import {
-  Button,
-  Card,
-  EmptyState,
-  ErrorState,
-  Input,
-  LoadingState,
-  Modal,
-  StatusBadge,
-  useToast,
-} from '../../../components/ui';
-import { useCategorization } from '../../demo/hooks/use-demo-data';
+  CategorizationErrorState,
+  CategoryListSkeleton,
+  InlineListSkeleton,
+} from '../components/CategorizationResourceState';
+import { CategoryList } from '../components/CategoryList';
+import { CreateCategory } from '../components/CreateCategory';
+import { RuleList } from '../components/RuleList';
+import { RuleWizard } from '../components/RuleWizard';
+import { useCategories } from '../hooks/use-categories';
+import { useRules } from '../hooks/use-rules';
 
 export function CategoriesPage() {
-  const categorization = useCategorization();
-  const { showToast } = useToast();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [color, setColor] = useState('#12a594');
-  const [nameError, setNameError] = useState('');
+  const categories = useCategories();
+  const rules = useRules();
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [ruleWizardOpen, setRuleWizardOpen] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedName = name.trim();
-
-    if (normalizedName.length < 2) {
-      setNameError('Informe um nome com pelo menos 2 caracteres.');
-      return;
-    }
-
-    const result = await categorization.createCategory({
-      name: normalizedName,
-      color,
-    });
-
-    if (result.ok) {
-      setModalOpen(false);
-      setName('');
-      setNameError('');
-      showToast({
-        title: 'Categoria criada',
-        message: 'A nova categoria foi salva nesta demonstração.',
-        tone: 'success',
-      });
-    }
+  function openCategoryModal() {
+    categories.clearCreateError();
+    setCategoryModalOpen(true);
   }
 
-  if (categorization.isLoading) {
-    return <LoadingState label="Carregando categorias e regras" />;
+  function openRuleWizard() {
+    rules.clearCreateError();
+    setRuleWizardOpen(true);
   }
 
-  if (categorization.error && !categorization.data) {
-    return (
-      <ErrorState
-        actionLabel="Tentar novamente"
-        description={categorization.error.message}
-        onAction={categorization.reload}
-      />
-    );
-  }
-
-  const data = categorization.data;
+  const availableCategories = categories.categories ?? [];
 
   return (
     <div className="demo-page">
       <header className="demo-page__header">
         <div>
-          <span className="demo-eyebrow">ORGANIZAÇÃO AUTOMÁTICA</span>
-          <h1>Categorias & Regras</h1>
-          <p>Uma taxonomia simples para explicar de onde vêm seus gastos.</p>
+          <span className="demo-eyebrow">ORGANIZAÇÃO DAS TRANSAÇÕES</span>
+          <h1>Categorias &amp; Regras</h1>
+          <p>
+            Crie categorias e monte regras que o serviço de categorização
+            aplicará às suas movimentações.
+          </p>
         </div>
-        <Button leadingIcon="categories" onClick={() => setModalOpen(true)}>
+        <Button leadingIcon="categories" onClick={openCategoryModal}>
           Nova categoria
         </Button>
       </header>
 
-      {!data || data.categories.length === 0 ? (
-        <Card as="section">
+      {categories.isLoading ? (
+        <CategoryListSkeleton />
+      ) : categories.error ? (
+        <CategorizationErrorState
+          error={categories.error}
+          onRetry={categories.reload}
+        />
+      ) : availableCategories.length === 0 ? (
+        <Card as="section" className="categorization-state-card">
           <EmptyState
             actionLabel="Criar categoria"
             description="Crie uma categoria para começar a organizar suas movimentações."
-            onAction={() => setModalOpen(true)}
-            title="Nenhuma categoria criada"
+            onAction={openCategoryModal}
+            title="Nenhuma categoria cadastrada"
           />
         </Card>
       ) : (
-        <section aria-label="Categorias" className="demo-card-grid demo-card-grid--categories">
-          {data.categories.map((category) => (
-            <Card as="article" className="category-card" key={category.id}>
-              <span
-                aria-hidden="true"
-                className="category-card__swatch"
-                style={{ backgroundColor: category.color }}
-              />
-              <div>
-                <h2>{category.name}</h2>
-                <p className="numeric">
-                  {category.transactionCount} movimentações
-                </p>
-              </div>
-            </Card>
-          ))}
-        </section>
+        <CategoryList categories={availableCategories} />
       )}
 
       <Card as="section" className="demo-section-card">
         <div className="demo-section-heading">
           <div>
-            <span className="demo-eyebrow">REGRAS VISUAIS</span>
-            <h2>Como a categorização acontece</h2>
+            <span className="demo-eyebrow">REGRAS DE CATEGORIZAÇÃO</span>
+            <h2>Regras cadastradas</h2>
+            <p>
+              A avaliação das regras acontece no serviço de categorização, em
+              segundo plano.
+            </p>
           </div>
-          <StatusBadge tone="info">Somente demonstração</StatusBadge>
+          <Button
+            disabled={availableCategories.length === 0}
+            onClick={openRuleWizard}
+            variant="outline"
+          >
+            Nova regra
+          </Button>
         </div>
-        {data?.rules.length ? (
-          <ol className="demo-ledger-list">
-            {data.rules.map((rule) => (
-              <li key={rule.id}>
-                <span>{rule.description}</span>
-                <strong>{rule.categoryName}</strong>
-              </li>
-            ))}
-          </ol>
+
+        {rules.isLoading ? (
+          <InlineListSkeleton />
+        ) : rules.error ? (
+          <CategorizationErrorState error={rules.error} onRetry={rules.reload} />
+        ) : rules.rules && rules.rules.length > 0 ? (
+          <RuleList categories={availableCategories} rules={rules.rules} />
         ) : (
-          <EmptyState description="Nenhuma regra está ativa neste cenário." />
+          <EmptyState
+            description="Nenhuma regra foi cadastrada até agora."
+            title="Sem regras cadastradas"
+          />
         )}
+
+        <p className="categorization-note">
+          <StatusBadge tone="info">Processamento assíncrono</StatusBadge>
+          Algumas informações podem continuar sendo atualizadas em segundo
+          plano.
+        </p>
       </Card>
 
-      <Modal
-        footer={
-          <>
-            <Button onClick={() => setModalOpen(false)} variant="ghost">
-              Cancelar
-            </Button>
-            <Button
-              form="category-form"
-              loading={categorization.isSaving}
-              type="submit"
-            >
-              Criar categoria
-            </Button>
-          </>
-        }
-        onClose={() => setModalOpen(false)}
-        open={modalOpen}
-        title="Nova categoria"
-      >
-        <form className="demo-form" id="category-form" onSubmit={handleSubmit}>
-          <Input
-            autoFocus
-            error={nameError}
-            label="Nome"
-            onChange={(event) => {
-              setName(event.currentTarget.value);
-              setNameError('');
-            }}
-            placeholder="Ex.: Pets"
-            value={name}
-          />
-          <Input
-            label="Cor de identificação"
-            onChange={(event) => setColor(event.currentTarget.value)}
-            type="color"
-            value={color}
-          />
-        </form>
-      </Modal>
+      <CreateCategory
+        error={categories.createError}
+        isCreating={categories.isCreating}
+        onClose={() => setCategoryModalOpen(false)}
+        onSubmit={categories.createCategory}
+        open={categoryModalOpen}
+      />
+
+      <RuleWizard
+        categories={availableCategories}
+        error={rules.createError}
+        isCreating={rules.isCreating}
+        onClose={() => setRuleWizardOpen(false)}
+        onSubmit={rules.createRule}
+        open={ruleWizardOpen}
+      />
     </div>
   );
 }

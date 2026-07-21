@@ -1,9 +1,13 @@
 import type { AuthenticatedUser } from '../../features/auth/types/auth';
 import type {
+  CategorizableTransaction,
+  CategorizationRule,
+  CategorizationSuggestion,
+  Category,
+} from '../../features/categories/types/categorization';
+import type {
   DemoActivity,
   DemoBudget,
-  DemoCategory,
-  DemoCategorizationRule,
   DemoGoal,
   DemoImport,
   DemoInsight,
@@ -22,13 +26,15 @@ export const demoCredentials = Object.freeze({
 });
 
 export type DemoState = {
-  version: 1;
+  version: 2;
   user: AuthenticatedUser;
   profile: UserProfile;
   preferences: UserPreferences;
   connections: UserConnection[];
-  categories: DemoCategory[];
-  rules: DemoCategorizationRule[];
+  categories: Category[];
+  rules: CategorizationRule[];
+  transactions: CategorizableTransaction[];
+  suggestions: CategorizationSuggestion[];
   budgets: DemoBudget[];
   imports: DemoImport[];
   metrics: DemoMetric[];
@@ -64,15 +70,112 @@ export function createDemoSeed(): DemoState {
     email: user.email,
     phone: '+55 11 90000-0000',
   };
-  const categories: DemoCategory[] = [
-    { id: 'category-food', name: 'Alimentação', color: '#12a594', transactionCount: 36 },
-    { id: 'category-transport', name: 'Transporte', color: '#e8a33d', transactionCount: 22 },
-    { id: 'category-home', name: 'Moradia', color: '#0e9c6e', transactionCount: 8 },
-    { id: 'category-leisure', name: 'Lazer', color: '#8a7be0', transactionCount: 14 },
-    { id: 'category-health', name: 'Saúde', color: '#e9736b', transactionCount: 6 },
-    { id: 'category-education', name: 'Educação', color: '#4f9cf0', transactionCount: 4 },
-    { id: 'category-subscriptions', name: 'Assinaturas', color: '#d96ba6', transactionCount: 9 },
-    { id: 'category-other', name: 'Outros', color: '#8fbf52', transactionCount: 43 },
+  const categories: Category[] = [
+    { id: 'category-food', name: 'Alimentação', color: '#12a594', active: true },
+    { id: 'category-transport', name: 'Transporte', color: '#e8a33d', active: true },
+    { id: 'category-home', name: 'Moradia', color: '#0e9c6e', active: true },
+    { id: 'category-leisure', name: 'Lazer', color: '#8a7be0', active: true },
+    { id: 'category-health', name: 'Saúde', color: '#e9736b', active: true },
+    { id: 'category-education', name: 'Educação', color: '#4f9cf0', active: true },
+    { id: 'category-subscriptions', name: 'Assinaturas', color: '#d96ba6', active: true },
+    { id: 'category-other', name: 'Outros', active: true },
+  ];
+  const rules: CategorizationRule[] = [
+    {
+      id: 'rule-market',
+      categoryId: 'category-food',
+      name: 'Compras de mercado',
+      status: 'ACTIVE',
+      priority: 10,
+      conditions: [
+        { field: 'description', operator: 'CONTAINS', value: 'mercado', weight: 2 },
+      ],
+      createdAt: isoDaysFromNow(-20, 9),
+      updatedAt: isoDaysFromNow(-20, 9),
+    },
+    {
+      id: 'rule-mobility',
+      categoryId: 'category-transport',
+      name: 'Mobilidade urbana',
+      status: 'ACTIVE',
+      priority: 20,
+      conditions: [
+        { field: 'merchant', operator: 'STARTS_WITH', value: 'mobilidade', weight: 1 },
+      ],
+      createdAt: isoDaysFromNow(-18, 9),
+      updatedAt: isoDaysFromNow(-18, 9),
+    },
+    {
+      id: 'rule-high-rent',
+      categoryId: 'category-home',
+      name: 'Aluguel acima de 1000',
+      status: 'INACTIVE',
+      priority: 30,
+      conditions: [
+        { field: 'description', operator: 'CONTAINS', value: 'aluguel' },
+        { field: 'amount', operator: 'AMOUNT_GREATER_THAN', value: '1000' },
+      ],
+      createdAt: isoDaysFromNow(-15, 9),
+      updatedAt: isoDaysFromNow(-15, 9),
+    },
+  ];
+  const marketTransactionId = '1f0a2f6c-5d1c-4a9a-9d61-2b6f5a8c1001';
+  const subscriptionTransactionId = '1f0a2f6c-5d1c-4a9a-9d61-2b6f5a8c1003';
+  const transactions: CategorizableTransaction[] = [
+    {
+      id: marketTransactionId,
+      description: 'MERCADO CENTRAL LTDA',
+      transactionDate: isoDaysFromNow(-3, 12),
+      amountCents: 18790,
+      currency: 'BRL',
+      categoryId: 'category-food',
+    },
+    {
+      id: '1f0a2f6c-5d1c-4a9a-9d61-2b6f5a8c1002',
+      description: 'MOBILIDADE URBANA APP',
+      transactionDate: isoDaysFromNow(-4, 12),
+      amountCents: 2450,
+      currency: 'BRL',
+    },
+    {
+      id: subscriptionTransactionId,
+      description: 'ASSINATURA STREAMING',
+      transactionDate: isoDaysFromNow(-6, 12),
+      amountCents: 3990,
+      currency: 'BRL',
+    },
+    {
+      id: '1f0a2f6c-5d1c-4a9a-9d61-2b6f5a8c1004',
+      description: 'FARMACIA BEM ESTAR',
+      transactionDate: isoDaysFromNow(-8, 12),
+      amountCents: 8615,
+      currency: 'BRL',
+    },
+    {
+      id: '1f0a2f6c-5d1c-4a9a-9d61-2b6f5a8c1005',
+      description: 'PAGAMENTO ALUGUEL',
+      transactionDate: isoDaysFromNow(-10, 12),
+      amountCents: 145000,
+      currency: 'BRL',
+      categoryId: 'category-home',
+    },
+  ];
+  const suggestions: CategorizationSuggestion[] = [
+    {
+      id: 'suggestion-market',
+      transactionId: marketTransactionId,
+      categoryId: 'category-food',
+      ruleId: 'rule-market',
+      status: 'APPLIED_AUTO',
+      score: 60,
+      rationale: 'Regra “Compras de mercado” correspondeu à descrição.',
+    },
+    {
+      id: 'suggestion-subscription',
+      transactionId: subscriptionTransactionId,
+      status: 'UNMATCHED',
+      score: 0,
+    },
   ];
   const budgets: DemoBudget[] = [
     { id: 'budget-food', categoryId: 'category-food', categoryName: 'Alimentação', spent: money(72000), limit: money(100000), status: 'ACTIVE' },
@@ -116,7 +219,7 @@ export function createDemoSeed(): DemoState {
   ];
 
   return {
-    version: 1,
+    version: 2,
     user,
     profile,
     preferences: {
@@ -132,10 +235,9 @@ export function createDemoSeed(): DemoState {
       { type: 'CSV_IMPORT', provider: 'OTHER' },
     ],
     categories,
-    rules: [
-      { id: 'rule-market', description: 'Descrição contém “mercado”', categoryId: 'category-food', categoryName: 'Alimentação' },
-      { id: 'rule-mobility', description: 'Descrição contém “mobilidade”', categoryId: 'category-transport', categoryName: 'Transporte' },
-    ],
+    rules,
+    transactions,
+    suggestions,
     budgets,
     imports: [
       {

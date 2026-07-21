@@ -166,25 +166,20 @@ Arquivos de ambiente prontos na raiz do projeto:
 | `.env.mock` | Fluxo padrão, tudo funcionando |
 | `.env.demo` | Build público da Vercel |
 | `.env.api` | Backend local via API Gateway (`localhost:8080`) |
-| `.env.mock-error` | Falha genérica no carregamento de dados |
-| `.env.mock-invalid` | Credenciais inválidas no login |
-| `.env.mock-invalid-request` | Requisição malformada |
-| `.env.mock-rate-limit` | Limite de requisições excedido |
-| `.env.mock-server-error` | Erro 5xx do servidor |
-| `.env.mock-profile-incomplete` | Perfil com dados faltantes |
-| `.env.mock-preferences-empty` | Preferências ainda não configuradas |
-| `.env.mock-connections-empty` | Nenhuma integração conectada |
-| `.env.mock-connections-multiple` | Várias integrações conectadas |
 
-**Cenários de dados** (`VITE_MOCK_SCENARIO`): `default`, `empty`, `error`, `loading`, `degraded`, `processing`, `profile-incomplete`, `preferences-empty`, `connections-empty`, `connections-multiple`.
-
-**Cenários de autenticação** (`VITE_MOCK_AUTH_SCENARIO`): `success`, `invalid_credentials`, `invalid_request`, `rate_limited`, `server_error`.
-
-Exemplo:
+Os cenários não têm arquivo próprio: são passados como argumento para
+`npm run dev:mock`, que aceita `scenario`, `auth`, `delay`, `roles`,
+`permissions` e `mode`. A sintaxe é a mesma em bash e PowerShell.
 
 ```bash
-npm run dev -- --mode mock-connections-empty
+npm run dev:mock -- scenario=categories-empty
+npm run dev:mock -- auth=rate_limited delay=150
+npm run dev:mock -- scenario=error auth=invalid_credentials
 ```
+
+**Cenários de dados** (`VITE_MOCK_SCENARIO`): `default`, `empty`, `error`, `loading`, `degraded`, `processing`, `profile-incomplete`, `preferences-empty`, `connections-empty`, `connections-multiple`, `categories-empty`, `category-create-error`, `manual-error`.
+
+**Cenários de autenticação** (`VITE_MOCK_AUTH_SCENARIO`): `success`, `invalid_credentials`, `invalid_request`, `rate_limited`, `server_error`.
 
 ---
 
@@ -218,6 +213,8 @@ O frontend fala **exclusivamente com o API Gateway** — o cliente HTTP recusa c
 | `/` | Dashboard |
 | `/imports` | Importações |
 | `/categories` | Categorias & Regras |
+| `/categorization/manual` | Categorização manual |
+| `/categorization/suggestions` | Sugestões de categorização |
 | `/budgets` | Orçamentos |
 | `/goals` | Metas |
 | `/insights` | Insights |

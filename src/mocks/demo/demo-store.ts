@@ -21,12 +21,15 @@ function isDemoState(value: unknown): value is DemoState {
 
   const state = value as Partial<DemoState>;
   return (
-    state.version === 1 &&
+    state.version === 2 &&
     typeof state.user === 'object' &&
     typeof state.profile === 'object' &&
     typeof state.preferences === 'object' &&
     Array.isArray(state.connections) &&
     Array.isArray(state.categories) &&
+    Array.isArray(state.rules) &&
+    Array.isArray(state.transactions) &&
+    Array.isArray(state.suggestions) &&
     Array.isArray(state.budgets) &&
     Array.isArray(state.imports) &&
     Array.isArray(state.goals) &&

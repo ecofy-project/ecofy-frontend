@@ -15,7 +15,10 @@ export type MockScenario =
   | 'profile-incomplete'
   | 'preferences-empty'
   | 'connections-empty'
-  | 'connections-multiple';
+  | 'connections-multiple'
+  | 'categories-empty'
+  | 'category-create-error'
+  | 'manual-error';
 export type MockAuthScenario =
   | 'success'
   | 'invalid_credentials'
@@ -57,6 +60,9 @@ const supportedMockScenarios = new Set<MockScenario>([
   'preferences-empty',
   'connections-empty',
   'connections-multiple',
+  'categories-empty',
+  'category-create-error',
+  'manual-error',
 ]);
 const supportedMockAuthScenarios = new Set<MockAuthScenario>([
   'success',
@@ -95,7 +101,7 @@ function readMockScenario(value: string | undefined): MockScenario {
 
   if (!supportedMockScenarios.has(normalized as MockScenario)) {
     throw new Error(
-      `VITE_MOCK_SCENARIO inválido: "${normalized}". Use default, empty, error, loading, degraded, processing, profile-incomplete, preferences-empty, connections-empty ou connections-multiple.`,
+      `VITE_MOCK_SCENARIO inválido: "${normalized}". Use default, empty, error, loading, degraded, processing, profile-incomplete, preferences-empty, connections-empty, connections-multiple, categories-empty, category-create-error ou manual-error.`,
     );
   }
 

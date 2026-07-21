@@ -7,8 +7,6 @@ import {
 } from '../../../services/errors/api-error';
 import type {
   BudgetOverview,
-  CategorizationOverview,
-  CreateCategoryInput,
   DemoDashboard,
   DemoImport,
   DemoImportProgress,
@@ -103,22 +101,6 @@ export function useDashboard() {
   const { demoService } = useAppDependencies();
   const load = useCallback(() => demoService.getDashboard(), [demoService]);
   return useDemoResource<DemoDashboard>(load);
-}
-
-export function useCategorization() {
-  const { demoService } = useAppDependencies();
-  const load = useCallback(
-    () => demoService.getCategorizationOverview(),
-    [demoService],
-  );
-  const resource = useDemoResource<CategorizationOverview>(load);
-  const mutate = resource.mutate;
-  const createCategory = useCallback(
-    (input: CreateCategoryInput) =>
-      mutate(() => demoService.createCategory(input)),
-    [demoService, mutate],
-  );
-  return { ...resource, createCategory };
 }
 
 export function useBudgets() {

@@ -1,9 +1,11 @@
 import { ApiAuthDataSource } from '../../features/auth/data-sources/api-auth-data-source';
 import type { AuthDataSource } from '../../features/auth/data-sources/auth-data-source';
 import { AuthService } from '../../features/auth/services/auth-service';
+import { ApiCategorizationDataSource } from '../../features/categories/data-sources/api-categorization-data-source';
+import type { CategorizationDataSource } from '../../features/categories/data-sources/categorization-data-source';
+import { CategorizationService } from '../../features/categories/services/categorization-service';
 import {
   ApiBudgetDataSource,
-  ApiCategorizationDataSource,
   ApiDashboardDataSource,
   ApiGoalDataSource,
   ApiImportDataSource,
@@ -19,9 +21,9 @@ import { ApiUserDataSource } from '../../features/users/data-sources/api-user-da
 import type { UserDataSource } from '../../features/users/data-sources/user-data-source';
 import { UserService } from '../../features/users/services/user-service';
 import { MockAuthDataSource } from '../../mocks/data-sources/mock-auth-data-source';
+import { MockCategorizationDataSource } from '../../mocks/data-sources/mock-categorization-data-source';
 import {
   MockBudgetDataSource,
-  MockCategorizationDataSource,
   MockDashboardDataSource,
   MockGoalDataSource,
   MockImportDataSource,
@@ -40,6 +42,7 @@ export type AppDependencies = Readonly<{
   authService: AuthService;
   foundationService: FoundationService;
   userService: UserService;
+  categorizationService: CategorizationService;
   demoService: DemoService;
   demoStore?: DemoStore;
   demoEnabled: boolean;
@@ -57,7 +60,6 @@ function createApiDependencies(
   });
   const demoDataSources: DemoDataSources = {
     dashboard: new ApiDashboardDataSource(),
-    categorization: new ApiCategorizationDataSource(),
     budget: new ApiBudgetDataSource(),
     imports: new ApiImportDataSource(),
     goals: new ApiGoalDataSource(),
@@ -69,6 +71,7 @@ function createApiDependencies(
     authDataSource: new ApiAuthDataSource(httpClient, authClientId),
     foundationDataSource: new ApiFoundationDataSource(httpClient),
     userDataSource: new ApiUserDataSource(httpClient),
+    categorizationDataSource: new ApiCategorizationDataSource(httpClient),
     demoDataSources,
   };
 }
@@ -82,6 +85,7 @@ export function createAppDependencies(): AppDependencies {
   let authDataSource: AuthDataSource;
   let foundationDataSource: FoundationDataSource;
   let userDataSource: UserDataSource;
+  let categorizationDataSource: CategorizationDataSource;
   let demoDataSources: DemoDataSources;
   let demoStore: DemoStore | undefined;
 
@@ -99,9 +103,12 @@ export function createAppDependencies(): AppDependencies {
     });
     foundationDataSource = new MockFoundationDataSource(options);
     userDataSource = new MockUserDataSource(demoStore, options);
+    categorizationDataSource = new MockCategorizationDataSource(
+      demoStore,
+      options,
+    );
     demoDataSources = {
       dashboard: new MockDashboardDataSource(demoStore, options),
-      categorization: new MockCategorizationDataSource(demoStore, options),
       budget: new MockBudgetDataSource(demoStore, options),
       imports: new MockImportDataSource(demoStore, options),
       goals: new MockGoalDataSource(demoStore, options),
@@ -121,6 +128,7 @@ export function createAppDependencies(): AppDependencies {
     authDataSource = api.authDataSource;
     foundationDataSource = api.foundationDataSource;
     userDataSource = api.userDataSource;
+    categorizationDataSource = api.categorizationDataSource;
     demoDataSources = api.demoDataSources;
   }
 
@@ -128,6 +136,7 @@ export function createAppDependencies(): AppDependencies {
     authService: new AuthService(authDataSource),
     foundationService: new FoundationService(foundationDataSource),
     userService: new UserService(userDataSource),
+    categorizationService: new CategorizationService(categorizationDataSource),
     demoService: new DemoService(demoDataSources),
     ...(demoStore ? { demoStore } : {}),
     demoEnabled: config.dataMode === 'mock',

@@ -1,6 +1,5 @@
 import type { DemoDataSources } from '../data-sources/demo-data-sources';
 import type {
-  CreateCategoryInput,
   DemoImportProgress,
   SaveBudgetInput,
   SaveGoalInput,
@@ -11,14 +10,6 @@ export class DemoService {
 
   getDashboard() {
     return this.dataSources.dashboard.getDashboard();
-  }
-
-  getCategorizationOverview() {
-    return this.dataSources.categorization.getCategorizationOverview();
-  }
-
-  createCategory(input: CreateCategoryInput) {
-    return this.dataSources.categorization.createCategory(input);
   }
 
   getBudgetOverview() {

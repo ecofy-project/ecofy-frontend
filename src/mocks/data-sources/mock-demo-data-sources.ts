@@ -1,6 +1,5 @@
 import type {
   BudgetDataSource,
-  CategorizationDataSource,
   DashboardDataSource,
   GoalDataSource,
   ImportDataSource,
@@ -9,8 +8,6 @@ import type {
 } from '../../features/demo/data-sources/demo-data-sources';
 import type {
   BudgetOverview,
-  CategorizationOverview,
-  CreateCategoryInput,
   DemoImport,
   DemoImportProgress,
   GoalOverview,
@@ -46,11 +43,6 @@ async function prepare(options: MockDemoOptions) {
       status: 503,
     });
   }
-}
-
-function categorizationOverview(store: DemoStore): CategorizationOverview {
-  const state = store.getState();
-  return { categories: state.categories, rules: state.rules };
 }
 
 function budgetOverview(store: DemoStore): BudgetOverview {
@@ -99,35 +91,6 @@ export class MockDashboardDataSource implements DashboardDataSource {
       goals: state.goals,
       activity: state.activity,
     };
-  }
-}
-
-export class MockCategorizationDataSource
-  implements CategorizationDataSource
-{
-  constructor(
-    private readonly store: DemoStore,
-    private readonly options: MockDemoOptions,
-  ) {}
-
-  async getCategorizationOverview() {
-    await prepare(this.options);
-    return this.options.scenario === 'empty'
-      ? { categories: [], rules: [] }
-      : categorizationOverview(this.store);
-  }
-
-  async createCategory(input: CreateCategoryInput) {
-    await prepare(this.options);
-    this.store.update((state) => {
-      state.categories.push({
-        id: createId('category'),
-        name: input.name,
-        color: input.color,
-        transactionCount: 0,
-      });
-    });
-    return categorizationOverview(this.store);
   }
 }
 

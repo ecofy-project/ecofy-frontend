@@ -36,6 +36,16 @@ export const navigationGroups: NavigationGroup[] = [
         path: '/categories',
         icon: 'categories',
       },
+      {
+        label: 'Categorização manual',
+        path: '/categorization/manual',
+        icon: 'check',
+      },
+      {
+        label: 'Sugestões',
+        path: '/categorization/suggestions',
+        icon: 'insights',
+      },
     ],
   },
   {

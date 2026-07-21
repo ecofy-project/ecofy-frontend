@@ -1,7 +1,5 @@
 import type {
   BudgetOverview,
-  CategorizationOverview,
-  CreateCategoryInput,
   DemoDashboard,
   DemoImport,
   DemoImportProgress,
@@ -14,11 +12,6 @@ import type {
 
 export interface DashboardDataSource {
   getDashboard(): Promise<DemoDashboard>;
-}
-
-export interface CategorizationDataSource {
-  getCategorizationOverview(): Promise<CategorizationOverview>;
-  createCategory(input: CreateCategoryInput): Promise<CategorizationOverview>;
 }
 
 export interface BudgetDataSource {
@@ -51,7 +44,6 @@ export interface NotificationDataSource {
 
 export type DemoDataSources = Readonly<{
   dashboard: DashboardDataSource;
-  categorization: CategorizationDataSource;
   budget: BudgetDataSource;
   imports: ImportDataSource;
   goals: GoalDataSource;

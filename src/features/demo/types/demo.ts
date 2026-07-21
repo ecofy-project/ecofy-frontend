@@ -1,3 +1,5 @@
+import type { Category } from '../../categories/types/categorization';
+
 export type DemoMoney = Readonly<{
   cents: number;
   currency: string;
@@ -16,20 +18,6 @@ export type DemoMetric =
       percentage: number;
       helperText: string;
     }>;
-
-export type DemoCategory = Readonly<{
-  id: string;
-  name: string;
-  color: string;
-  transactionCount: number;
-}>;
-
-export type DemoCategorizationRule = Readonly<{
-  id: string;
-  description: string;
-  categoryId: string;
-  categoryName: string;
-}>;
 
 export type DemoBudgetStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
 
@@ -119,25 +107,15 @@ export type DemoDashboard = Readonly<{
   activity: readonly DemoActivity[];
 }>;
 
-export type CategorizationOverview = Readonly<{
-  categories: readonly DemoCategory[];
-  rules: readonly DemoCategorizationRule[];
-}>;
-
 export type BudgetOverview = Readonly<{
   budgets: readonly DemoBudget[];
-  categories: readonly DemoCategory[];
+  categories: readonly Category[];
   currency: string;
 }>;
 
 export type GoalOverview = Readonly<{
   goals: readonly DemoGoal[];
   currency: string;
-}>;
-
-export type CreateCategoryInput = Readonly<{
-  name: string;
-  color: string;
 }>;
 
 export type SaveBudgetInput = Readonly<{
