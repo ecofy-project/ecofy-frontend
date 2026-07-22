@@ -1,34 +1,11 @@
 import type { DemoDataSources } from '../data-sources/demo-data-sources';
-import type {
-  DemoImportProgress,
-  SaveBudgetInput,
-  SaveGoalInput,
-} from '../types/demo';
+import type { SaveGoalInput } from '../types/demo';
 
 export class DemoService {
   constructor(private readonly dataSources: DemoDataSources) {}
 
   getDashboard() {
     return this.dataSources.dashboard.getDashboard();
-  }
-
-  getBudgetOverview() {
-    return this.dataSources.budget.getBudgetOverview();
-  }
-
-  saveBudget(input: SaveBudgetInput) {
-    return this.dataSources.budget.saveBudget(input);
-  }
-
-  listImports() {
-    return this.dataSources.imports.listImports();
-  }
-
-  startImport(
-    file: Readonly<{ name: string; size: number }>,
-    onProgress: (progress: DemoImportProgress) => void,
-  ) {
-    return this.dataSources.imports.startImport(file, onProgress);
   }
 
   getGoalOverview() {

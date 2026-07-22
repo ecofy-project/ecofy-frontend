@@ -1,17 +1,11 @@
 import type {
-  BudgetDataSource,
   DashboardDataSource,
   GoalDataSource,
-  ImportDataSource,
   InsightsDataSource,
   NotificationDataSource,
 } from '../../features/demo/data-sources/demo-data-sources';
 import type {
-  BudgetOverview,
-  DemoImport,
-  DemoImportProgress,
   GoalOverview,
-  SaveBudgetInput,
   SaveGoalInput,
 } from '../../features/demo/types/demo';
 import type { MockScenario } from '../../services/config/env';
@@ -43,15 +37,6 @@ async function prepare(options: MockDemoOptions) {
       status: 503,
     });
   }
-}
-
-function budgetOverview(store: DemoStore): BudgetOverview {
-  const state = store.getState();
-  return {
-    budgets: state.budgets,
-    categories: state.categories,
-    currency: state.preferences.DEFAULT_CURRENCY ?? 'BRL',
-  };
 }
 
 function goalOverview(store: DemoStore): GoalOverview {
@@ -91,124 +76,6 @@ export class MockDashboardDataSource implements DashboardDataSource {
       goals: state.goals,
       activity: state.activity,
     };
-  }
-}
-
-export class MockBudgetDataSource implements BudgetDataSource {
-  constructor(
-    private readonly store: DemoStore,
-    private readonly options: MockDemoOptions,
-  ) {}
-
-  async getBudgetOverview() {
-    await prepare(this.options);
-    const overview = budgetOverview(this.store);
-    return this.options.scenario === 'empty'
-      ? { ...overview, budgets: [] }
-      : overview;
-  }
-
-  async saveBudget(input: SaveBudgetInput) {
-    await prepare(this.options);
-    this.store.update((state) => {
-      const category = state.categories.find(
-        (item) => item.id === input.categoryId,
-      );
-
-      if (!category) {
-        throw new ApiErrorException({
-          code: 'CATEGORY_NOT_FOUND',
-          message: 'Selecione uma categoria válida.',
-          status: 422,
-        });
-      }
-
-      const current = input.id
-        ? state.budgets.find((budget) => budget.id === input.id)
-        : undefined;
-      const nextBudget = {
-        id: current?.id ?? createId('budget'),
-        categoryId: category.id,
-        categoryName: category.name,
-        spent: current?.spent ?? {
-          cents: 0,
-          currency: input.limit.currency,
-        },
-        limit: input.limit,
-        status: input.status,
-      };
-
-      state.budgets = current
-        ? state.budgets.map((budget) =>
-            budget.id === current.id ? nextBudget : budget,
-          )
-        : [nextBudget, ...state.budgets];
-    });
-    return budgetOverview(this.store);
-  }
-}
-
-export class MockImportDataSource implements ImportDataSource {
-  constructor(
-    private readonly store: DemoStore,
-    private readonly options: MockDemoOptions,
-  ) {}
-
-  async listImports() {
-    await prepare(this.options);
-    return this.options.scenario === 'empty'
-      ? []
-      : this.store.getState().imports;
-  }
-
-  async startImport(
-    file: Readonly<{ name: string; size: number }>,
-    onProgress: (progress: DemoImportProgress) => void,
-  ) {
-    await prepare(this.options);
-    const id = createId('import');
-    const runningImport: DemoImport = {
-      id,
-      fileName: file.name,
-      status: 'RUNNING',
-      createdAt: new Date().toISOString(),
-    };
-    this.store.update((state) => {
-      state.imports.unshift(runningImport);
-    });
-
-    for (const progress of [18, 46, 73, 100]) {
-      onProgress({
-        phase: progress < 46 ? 'uploading' : 'processing',
-        percent: progress,
-      });
-      await simulateMockLatency(Math.max(120, this.options.delayMs / 2));
-    }
-
-    if (this.options.scenario !== 'processing') {
-      this.store.update((state) => {
-        state.imports = state.imports.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                status: 'COMPLETED',
-                result: {
-                  totalRecords: 148,
-                  processedRecords: 148,
-                  successCount: 142,
-                  errorCount: 3,
-                  duplicateRecords: 3,
-                  publishedRecords: 142,
-                  errors: [],
-                },
-              }
-            : item,
-        );
-      });
-    }
-
-    void file.size;
-    return this.store.getState().imports;
   }
 }
 

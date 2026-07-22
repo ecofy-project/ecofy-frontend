@@ -18,7 +18,28 @@ export type MockScenario =
   | 'connections-multiple'
   | 'categories-empty'
   | 'category-create-error'
-  | 'manual-error';
+  | 'manual-error'
+  | 'budgets-empty'
+  | 'budget-single'
+  | 'budgets-multiple'
+  | 'budget-paused'
+  | 'budget-archived'
+  | 'consumption-partial'
+  | 'consumption-full'
+  | 'budget-conflict'
+  | 'budget-error'
+  | 'imports-empty'
+  | 'import-completed'
+  | 'import-completed-with-errors'
+  | 'import-failed'
+  | 'import-pending'
+  | 'import-running'
+  | 'import-already-processed'
+  | 'import-idempotency-mismatch'
+  | 'import-file-too-large'
+  | 'import-unsupported-type'
+  | 'import-invalid-header'
+  | 'import-error';
 export type MockAuthScenario =
   | 'success'
   | 'invalid_credentials'
@@ -36,6 +57,13 @@ export type FrontendConfig = Readonly<{
   mockUserRoles: readonly string[];
   mockUserPermissions: readonly string[];
   mockDelayMs: number;
+  /**
+   * Limite de tamanho usado nas validações preliminares de importação. O padrão
+   * acompanha `ING_STORAGE_MAX_FILE_SIZE` do ambiente de desenvolvimento do
+   * `ms-ingestion` (10 MB); em produção o serviço aceita 20 MB. O backend
+   * continua sendo a autoridade final.
+   */
+  maxImportFileSizeBytes: number;
 }>;
 
 type EnvironmentSource = Record<string, string | boolean | undefined>;
@@ -63,6 +91,27 @@ const supportedMockScenarios = new Set<MockScenario>([
   'categories-empty',
   'category-create-error',
   'manual-error',
+  'budgets-empty',
+  'budget-single',
+  'budgets-multiple',
+  'budget-paused',
+  'budget-archived',
+  'consumption-partial',
+  'consumption-full',
+  'budget-conflict',
+  'budget-error',
+  'imports-empty',
+  'import-completed',
+  'import-completed-with-errors',
+  'import-failed',
+  'import-pending',
+  'import-running',
+  'import-already-processed',
+  'import-idempotency-mismatch',
+  'import-file-too-large',
+  'import-unsupported-type',
+  'import-invalid-header',
+  'import-error',
 ]);
 const supportedMockAuthScenarios = new Set<MockAuthScenario>([
   'success',
@@ -101,7 +150,9 @@ function readMockScenario(value: string | undefined): MockScenario {
 
   if (!supportedMockScenarios.has(normalized as MockScenario)) {
     throw new Error(
-      `VITE_MOCK_SCENARIO inválido: "${normalized}". Use default, empty, error, loading, degraded, processing, profile-incomplete, preferences-empty, connections-empty, connections-multiple, categories-empty, category-create-error ou manual-error.`,
+      `VITE_MOCK_SCENARIO inválido: "${normalized}". Valores aceitos: ${[
+        ...supportedMockScenarios,
+      ].join(', ')}.`,
     );
   }
 
@@ -140,6 +191,29 @@ function readMockDelay(value: string | undefined): number {
   if (!Number.isInteger(parsed) || parsed < 0 || parsed > 10_000) {
     throw new Error(
       'VITE_MOCK_DELAY_MS deve ser um inteiro entre 0 e 10000.',
+    );
+  }
+
+  return parsed;
+}
+
+const defaultMaxImportFileSizeBytes = 10 * 1024 * 1024;
+const maximumSupportedImportFileSizeBytes = 100 * 1024 * 1024;
+
+function readMaxImportFileSize(value: string | undefined): number {
+  if (!value?.trim()) {
+    return defaultMaxImportFileSizeBytes;
+  }
+
+  const parsed = Number(value);
+
+  if (
+    !Number.isInteger(parsed) ||
+    parsed <= 0 ||
+    parsed > maximumSupportedImportFileSizeBytes
+  ) {
+    throw new Error(
+      'VITE_MAX_IMPORT_FILE_SIZE_BYTES deve ser um inteiro positivo de até 104857600.',
     );
   }
 
@@ -249,6 +323,11 @@ export function loadFrontendConfig(
       ? source.VITE_MOCK_DELAY_MS
       : undefined,
   );
+  const maxImportFileSizeBytes = readMaxImportFileSize(
+    typeof source.VITE_MAX_IMPORT_FILE_SIZE_BYTES === 'string'
+      ? source.VITE_MAX_IMPORT_FILE_SIZE_BYTES
+      : undefined,
+  );
 
   return Object.freeze({
     ...(gateway ? { apiGatewayUrl: normalizeGatewayUrl(gateway) } : {}),
@@ -260,6 +339,7 @@ export function loadFrontendConfig(
     mockUserRoles,
     mockUserPermissions,
     mockDelayMs,
+    maxImportFileSizeBytes,
   });
 }
 

@@ -1,92 +1,83 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useState } from 'react';
 import {
-  Alert,
   Button,
   Card,
   EmptyState,
-  ErrorState,
-  Icon,
-  LoadingState,
-  ProgressBar,
-  StatusBadge,
+  Pagination,
   useToast,
 } from '../../../components/ui';
-import type { BadgeTone } from '../../../components/ui';
-import { useImports } from '../../demo/hooks/use-demo-data';
-import type { DemoImportStatus } from '../../demo/types/demo';
-import { formatDemoDate } from '../../demo/utils/demo-format';
+import { FileDropzone } from '../components/FileDropzone';
+import { ImportHistoryCard } from '../components/ImportHistoryCard';
+import { ImportHistoryTable } from '../components/ImportHistoryTable';
+import { ImportProgress } from '../components/ImportProgress';
+import {
+  ImportErrorState,
+  ImportHistorySkeleton,
+} from '../components/ImportResourceState';
+import { ImportResult } from '../components/ImportResult';
+import { ImportStatusFilter } from '../components/ImportStatusFilter';
+import { ImportUploadAlert } from '../components/ImportUploadAlert';
+import { SelectedFileCard } from '../components/SelectedFileCard';
+import { useImportHistory } from '../hooks/use-import-history';
+import { useImportUpload } from '../hooks/use-import-upload';
+import { validateImportFile } from '../utils/import-file';
 
-function importStatus(status: DemoImportStatus): {
-  label: string;
-  tone: BadgeTone;
-} {
-  const statuses: Record<
-    DemoImportStatus,
-    { label: string; tone: BadgeTone }
-  > = {
-    PENDING: { label: 'Selecionado', tone: 'neutral' },
-    RUNNING: { label: 'Processando', tone: 'processing' },
-    COMPLETED: { label: 'Concluído', tone: 'success' },
-    COMPLETED_WITH_ERRORS: { label: 'Concluído com erros', tone: 'warning' },
-    FAILED: { label: 'Falhou', tone: 'danger' },
-  };
-  return statuses[status];
-}
-
+/**
+ * Envio de arquivo e histórico. A página não conhece o modo de execução, não
+ * monta requisições e não interpreta o conteúdo do arquivo.
+ */
 export function ImportsPage() {
-  const imports = useImports();
+  const history = useImportHistory();
+  const { reload: reloadHistory } = history;
+  const onUploadFinished = useCallback(() => reloadHistory(), [reloadHistory]);
+  const upload = useImportUpload(onUploadFinished);
   const { showToast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectionError, setSelectionError] = useState('');
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0] ?? null;
-    setSelectionError('');
+  const { maxFileSizeBytes, selectFile } = upload;
 
-    if (file && file.size > 5 * 1024 * 1024) {
-      setSelectedFile(null);
-      setSelectionError('Escolha um arquivo de até 5 MB para a demonstração.');
-      return;
-    }
+  const handleSelect = useCallback(
+    (files: readonly File[]) => {
+      if (files.length === 0) {
+        return;
+      }
 
-    setSelectedFile(file);
-  }
+      const rejection = validateImportFile(files, maxFileSizeBytes);
 
-  async function handleImport() {
-    if (!selectedFile) {
-      setSelectionError('Selecione um arquivo CSV ou OFX.');
-      return;
-    }
+      if (rejection) {
+        setSelectionError(rejection.message);
+        selectFile(null);
+        return;
+      }
 
-    const result = await imports.startImport({
-      name: selectedFile.name,
-      size: selectedFile.size,
-    });
+      setSelectionError('');
+      selectFile(files[0] ?? null);
+    },
+    [maxFileSizeBytes, selectFile],
+  );
+
+  async function handleSubmit() {
+    const result = await upload.startUpload();
 
     if (result.ok) {
-      setSelectedFile(null);
       showToast({
-        title: 'Importação concluída',
-        message: 'O resultado demonstrativo está disponível no histórico.',
+        title: 'Arquivo enviado',
+        message: 'Acompanhe o processamento nesta página.',
         tone: 'success',
       });
     }
   }
 
-  if (imports.isLoading) {
-    return <LoadingState label="Carregando importações" />;
+  function handleRemove() {
+    setSelectionError('');
+    upload.reset();
   }
 
-  if (imports.error && !imports.data) {
-    return (
-      <ErrorState
-        actionLabel="Tentar novamente"
-        description={imports.error.message}
-        onAction={imports.reload}
-      />
-    );
-  }
+  const page = history.jobs;
+  const isTerminal =
+    upload.state === 'completed' ||
+    upload.state === 'completed_with_errors' ||
+    upload.state === 'failed';
 
   return (
     <div className="demo-page">
@@ -94,123 +85,136 @@ export function ImportsPage() {
         <div>
           <span className="demo-eyebrow">ENTRADA DE DADOS</span>
           <h1>Importações</h1>
-          <p>Experimente o fluxo de envio sem expor ou processar dados financeiros.</p>
+          <p>
+            Envie um extrato em CSV ou OFX e acompanhe o processamento feito
+            pelo serviço de ingestão.
+          </p>
         </div>
       </header>
 
-      <Card as="section" className="import-dropzone">
-        <span className="import-dropzone__icon">
-          <Icon name="imports" size={24} />
-        </span>
-        <div>
-          <h2>Selecione um arquivo demonstrativo</h2>
-          <p>CSV ou OFX, até 5 MB. O conteúdo não será lido nem armazenado.</p>
-        </div>
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant="outline"
-        >
-          Escolher arquivo
-        </Button>
-        <input
-          accept=".csv,.ofx,text/csv,application/x-ofx"
-          hidden
-          id="demo-import-file"
-          onChange={handleFileChange}
-          ref={fileInputRef}
-          type="file"
-        />
-        {selectedFile ? (
-          <div className="import-selection" role="status">
-            <span>
-              <strong>{selectedFile.name}</strong>
-              <small>{Math.max(1, Math.round(selectedFile.size / 1024))} KB selecionados</small>
-            </span>
-            <Button
-              loading={imports.isSaving}
-              onClick={handleImport}
-              size="sm"
-            >
-              Simular importação
-            </Button>
-          </div>
-        ) : null}
-        {selectionError ? (
-          <Alert title="Arquivo não selecionado" tone="danger">
-            {selectionError}
-          </Alert>
-        ) : null}
-        {imports.progress ? (
-          <div className="import-progress" role="status">
-            <div>
-              <strong>
-                {imports.progress.phase === 'uploading'
-                  ? 'Enviando arquivo…'
-                  : 'Processando dados…'}
-              </strong>
-              <span className="numeric">{imports.progress.percent}%</span>
-            </div>
-            <ProgressBar
-              label={`Importação em ${imports.progress.percent}%`}
-              tone="processing"
-              value={imports.progress.percent}
-            />
-          </div>
-        ) : null}
-      </Card>
+      <section aria-labelledby="import-upload-heading" className="import-upload">
+        <h2 className="sr-only" id="import-upload-heading">
+          Enviar arquivo
+        </h2>
 
-      <section aria-labelledby="import-history-heading" className="demo-section">
+        {upload.error ? (
+          <ImportUploadAlert
+            error={upload.error}
+            maxFileSizeBytes={upload.maxFileSizeBytes}
+            onDismiss={upload.clearError}
+          />
+        ) : null}
+
+        {isTerminal && upload.job ? (
+          <ImportResult
+            errors={upload.errors}
+            job={upload.job}
+            onStartNew={handleRemove}
+          />
+        ) : (
+          <>
+            <FileDropzone
+              disabled={upload.isUploading}
+              error={selectionError}
+              maxFileSizeBytes={upload.maxFileSizeBytes}
+              onSelect={handleSelect}
+            />
+
+            {upload.selectedFile ? (
+              <SelectedFileCard
+                canSubmit={!upload.isUploading && upload.state === 'selected'}
+                file={upload.selectedFile}
+                isUploading={upload.isUploading}
+                onRemove={handleRemove}
+                onSubmit={handleSubmit}
+              />
+            ) : null}
+
+            <ImportProgress
+              isUploading={upload.isUploading}
+              job={upload.job}
+              onCancel={upload.cancelUpload}
+              uploadPercent={upload.uploadPercent}
+            />
+
+            {upload.pollingExhausted ? (
+              <p className="import-note" role="status">
+                O processamento continua em andamento no serviço. Consulte os
+                detalhes desta importação mais tarde.
+              </p>
+            ) : null}
+          </>
+        )}
+      </section>
+
+      <section aria-labelledby="import-history-heading" className="import-history">
         <div className="demo-section-heading">
           <div>
             <span className="demo-eyebrow">HISTÓRICO</span>
-            <h2 id="import-history-heading">Importações recentes</h2>
+            <h2 id="import-history-heading">Importações anteriores</h2>
+          </div>
+          <div className="import-history__filters">
+            <ImportStatusFilter
+              disabled={history.isLoading}
+              onChange={history.changeStatus}
+              status={history.status}
+            />
           </div>
         </div>
-        {!imports.data?.length ? (
-          <Card>
+
+        <p aria-live="polite" className="import-history__status">
+          {history.isRefreshing || upload.isPolling
+            ? 'Atualizando informações...'
+            : ''}
+        </p>
+
+        {history.isLoading ? (
+          <ImportHistorySkeleton />
+        ) : history.error ? (
+          <ImportErrorState error={history.error} onRetry={history.reload} />
+        ) : !page || page.content.length === 0 ? (
+          <Card as="section" className="import-state-card">
             <EmptyState
-              description="Selecione um arquivo para iniciar a primeira simulação."
-              title="Nenhuma importação"
+              description={
+                history.status
+                  ? 'Nenhuma importação corresponde ao status selecionado.'
+                  : 'Envie um arquivo CSV ou OFX para começar.'
+              }
+              title="Nenhuma importação encontrada"
+              {...(history.status
+                ? {
+                    actionLabel: 'Limpar filtro',
+                    onAction: () => history.changeStatus(undefined),
+                  }
+                : {})}
             />
           </Card>
         ) : (
-          <div className="import-history">
-            {imports.data.map((item) => {
-              const status = importStatus(item.status);
-              return (
-                <Card as="article" className="import-card" key={item.id}>
-                  <div className="import-card__heading">
-                    <div>
-                      <h3>{item.fileName}</h3>
-                      <time dateTime={item.createdAt}>{formatDemoDate(item.createdAt)}</time>
-                    </div>
-                    <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                  </div>
-                  {item.result ? (
-                    <dl className="import-result">
-                      <div><dt>Total</dt><dd>{item.result.totalRecords}</dd></div>
-                      <div><dt>Processados</dt><dd>{item.result.processedRecords}</dd></div>
-                      <div><dt>Sucesso</dt><dd>{item.result.successCount}</dd></div>
-                      <div><dt>Erros</dt><dd>{item.result.errorCount}</dd></div>
-                      <div><dt>Duplicados</dt><dd>{item.result.duplicateRecords}</dd></div>
-                      <div><dt>Publicados</dt><dd>{item.result.publishedRecords}</dd></div>
-                    </dl>
-                  ) : null}
-                  {item.result?.errors.length ? (
-                    <ul className="import-errors">
-                      {item.result.errors.map((error) => (
-                        <li key={`${item.id}-${error.line}`}>
-                          <strong>Linha {error.line}</strong>
-                          <span>{error.message}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </Card>
-              );
-            })}
+          <div
+            className={`import-history__results ${
+              history.isRefreshing ? 'import-history__results--updating' : ''
+            }`.trim()}
+          >
+            <ImportHistoryTable jobs={page.content} />
+            <div className="import-history__cards">
+              {page.content.map((job) => (
+                <ImportHistoryCard job={job} key={job.id} />
+              ))}
+            </div>
+            <Pagination
+              onPageChange={history.changePage}
+              page={page.page}
+              totalElements={page.totalElements}
+              totalPages={page.totalPages}
+            />
           </div>
         )}
+
+        <div className="import-history__actions">
+          <Button onClick={history.reload} size="sm" variant="ghost">
+            Atualizar histórico
+          </Button>
+        </div>
       </section>
     </div>
   );

@@ -1,5 +1,3 @@
-import type { Category } from '../../categories/types/categorization';
-
 export type DemoMoney = Readonly<{
   cents: number;
   currency: string;
@@ -28,41 +26,6 @@ export type DemoBudget = Readonly<{
   spent: DemoMoney;
   limit: DemoMoney;
   status: DemoBudgetStatus;
-}>;
-
-export type DemoImportStatus =
-  | 'PENDING'
-  | 'RUNNING'
-  | 'COMPLETED'
-  | 'COMPLETED_WITH_ERRORS'
-  | 'FAILED';
-
-export type DemoImportError = Readonly<{
-  line: number;
-  message: string;
-}>;
-
-export type DemoImportResult = Readonly<{
-  totalRecords: number;
-  processedRecords: number;
-  successCount: number;
-  errorCount: number;
-  duplicateRecords: number;
-  publishedRecords: number;
-  errors: readonly DemoImportError[];
-}>;
-
-export type DemoImport = Readonly<{
-  id: string;
-  fileName: string;
-  status: DemoImportStatus;
-  createdAt: string;
-  result?: DemoImportResult;
-}>;
-
-export type DemoImportProgress = Readonly<{
-  phase: 'uploading' | 'processing';
-  percent: number;
 }>;
 
 export type DemoGoal = Readonly<{
@@ -107,22 +70,9 @@ export type DemoDashboard = Readonly<{
   activity: readonly DemoActivity[];
 }>;
 
-export type BudgetOverview = Readonly<{
-  budgets: readonly DemoBudget[];
-  categories: readonly Category[];
-  currency: string;
-}>;
-
 export type GoalOverview = Readonly<{
   goals: readonly DemoGoal[];
   currency: string;
-}>;
-
-export type SaveBudgetInput = Readonly<{
-  id?: string;
-  categoryId: string;
-  limit: DemoMoney;
-  status: DemoBudgetStatus;
 }>;
 
 export type SaveGoalInput = Readonly<{

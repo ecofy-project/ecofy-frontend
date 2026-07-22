@@ -6,14 +6,10 @@ import {
   type ApiError,
 } from '../../../services/errors/api-error';
 import type {
-  BudgetOverview,
   DemoDashboard,
-  DemoImport,
-  DemoImportProgress,
   DemoInsight,
   DemoNotification,
   GoalOverview,
-  SaveBudgetInput,
   SaveGoalInput,
 } from '../types/demo';
 
@@ -101,42 +97,6 @@ export function useDashboard() {
   const { demoService } = useAppDependencies();
   const load = useCallback(() => demoService.getDashboard(), [demoService]);
   return useDemoResource<DemoDashboard>(load);
-}
-
-export function useBudgets() {
-  const { demoService } = useAppDependencies();
-  const load = useCallback(
-    () => demoService.getBudgetOverview(),
-    [demoService],
-  );
-  const resource = useDemoResource<BudgetOverview>(load);
-  const mutate = resource.mutate;
-  const saveBudget = useCallback(
-    (input: SaveBudgetInput) =>
-      mutate(() => demoService.saveBudget(input)),
-    [demoService, mutate],
-  );
-  return { ...resource, saveBudget };
-}
-
-export function useImports() {
-  const { demoService } = useAppDependencies();
-  const [progress, setProgress] = useState<DemoImportProgress | null>(null);
-  const load = useCallback(() => demoService.listImports(), [demoService]);
-  const resource = useDemoResource<readonly DemoImport[]>(load);
-  const mutate = resource.mutate;
-  const startImport = useCallback(
-    async (file: Readonly<{ name: string; size: number }>) => {
-      setProgress({ phase: 'uploading', percent: 0 });
-      const result = await mutate(() =>
-        demoService.startImport(file, setProgress),
-      );
-      setProgress(null);
-      return result;
-    },
-    [demoService, mutate],
-  );
-  return { ...resource, progress, startImport };
 }
 
 export function useGoals() {

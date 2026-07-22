@@ -1,5 +1,9 @@
 import type { AuthenticatedUser } from '../../features/auth/types/auth';
 import type {
+  Budget,
+  BudgetConsumption,
+} from '../../features/budgets/types/budget';
+import type {
   CategorizableTransaction,
   CategorizationRule,
   CategorizationSuggestion,
@@ -9,11 +13,14 @@ import type {
   DemoActivity,
   DemoBudget,
   DemoGoal,
-  DemoImport,
   DemoInsight,
   DemoMetric,
   DemoNotification,
 } from '../../features/demo/types/demo';
+import type {
+  ImportError,
+  ImportJob,
+} from '../../features/imports/types/import';
 import type {
   UserConnection,
   UserPreferences,
@@ -25,8 +32,11 @@ export const demoCredentials = Object.freeze({
   password: 'demo',
 });
 
+/** Erro por linha guardado no Mock Storage, vinculado ao job correspondente. */
+export type DemoImportJobError = ImportError & { importJobId: string };
+
 export type DemoState = {
-  version: 2;
+  version: 4;
   user: AuthenticatedUser;
   profile: UserProfile;
   preferences: UserPreferences;
@@ -35,8 +45,15 @@ export type DemoState = {
   rules: CategorizationRule[];
   transactions: CategorizableTransaction[];
   suggestions: CategorizationSuggestion[];
+  /** Projeção usada pelo resumo do dashboard. */
   budgets: DemoBudget[];
-  imports: DemoImport[];
+  /** Orçamentos no contrato de `ms-budgeting`, usados pela feature de budgets. */
+  budgetRecords: Budget[];
+  /** Consumos prontos, como o backend os publica em `/budgets/overview`. */
+  budgetConsumptions: BudgetConsumption[];
+  /** Metadados de importação. Nenhum arquivo ou conteúdo é armazenado. */
+  importJobs: ImportJob[];
+  importJobErrors: DemoImportJobError[];
   metrics: DemoMetric[];
   goals: DemoGoal[];
   insights: DemoInsight[];
@@ -53,6 +70,29 @@ function isoDaysFromNow(days: number, hour = 12) {
 
 function money(cents: number) {
   return { cents, currency: 'BRL' } as const;
+}
+
+/** Datas `LocalDate` (`YYYY-MM-DD`), no formato aceito pelo budgeting. */
+function localDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function currentMonthPeriod() {
+  const now = new Date();
+  return {
+    periodStart: localDate(new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1))),
+    periodEnd: localDate(new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0))),
+  };
+}
+
+function currentWeekPeriod() {
+  const now = new Date();
+  const start = new Date(
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()),
+  );
+  const end = new Date(start);
+  end.setUTCDate(start.getUTCDate() + 6);
+  return { periodStart: localDate(start), periodEnd: localDate(end) };
 }
 
 export function createDemoSeed(): DemoState {
@@ -184,6 +224,264 @@ export function createDemoSeed(): DemoState {
     { id: 'budget-leisure', categoryId: 'category-leisure', categoryName: 'Lazer', spent: money(54000), limit: money(50000), status: 'ACTIVE' },
     { id: 'budget-health', categoryId: 'category-health', categoryName: 'Saúde', spent: money(15050), limit: money(40000), status: 'PAUSED' },
   ];
+  const monthly = currentMonthPeriod();
+  const weekly = currentWeekPeriod();
+  const budgetCreatedAt = isoDaysFromNow(-25, 9);
+  /**
+   * Orçamentos e consumos são dados prontos, coerentes entre si e com o resumo
+   * do dashboard. O frontend nunca deriva consumo a partir de transações.
+   */
+  const budgetRecords: Budget[] = [
+    {
+      id: 'budget-food',
+      categoryId: 'category-food',
+      periodType: 'MONTHLY',
+      ...monthly,
+      limitAmount: '1000.00',
+      currency: 'BRL',
+      status: 'ACTIVE',
+      version: 1,
+      createdAt: budgetCreatedAt,
+      updatedAt: budgetCreatedAt,
+    },
+    {
+      id: 'budget-transport',
+      categoryId: 'category-transport',
+      periodType: 'MONTHLY',
+      ...monthly,
+      limitAmount: '600.00',
+      currency: 'BRL',
+      status: 'ACTIVE',
+      version: 1,
+      createdAt: isoDaysFromNow(-24, 9),
+      updatedAt: isoDaysFromNow(-24, 9),
+    },
+    {
+      id: 'budget-home',
+      categoryId: 'category-home',
+      periodType: 'MONTHLY',
+      ...monthly,
+      limitAmount: '1800.00',
+      currency: 'BRL',
+      status: 'ACTIVE',
+      version: 2,
+      createdAt: isoDaysFromNow(-23, 9),
+      updatedAt: isoDaysFromNow(-9, 9),
+    },
+    {
+      id: 'budget-leisure',
+      categoryId: 'category-leisure',
+      periodType: 'MONTHLY',
+      ...monthly,
+      limitAmount: '500.00',
+      currency: 'BRL',
+      status: 'ACTIVE',
+      version: 1,
+      createdAt: isoDaysFromNow(-22, 9),
+      updatedAt: isoDaysFromNow(-22, 9),
+    },
+    {
+      id: 'budget-health',
+      categoryId: 'category-health',
+      periodType: 'MONTHLY',
+      ...monthly,
+      limitAmount: '400.00',
+      currency: 'BRL',
+      status: 'PAUSED',
+      version: 3,
+      createdAt: isoDaysFromNow(-21, 9),
+      updatedAt: isoDaysFromNow(-5, 9),
+    },
+    {
+      id: 'budget-education',
+      categoryId: 'category-education',
+      periodType: 'MONTHLY',
+      ...monthly,
+      limitAmount: '350.00',
+      currency: 'BRL',
+      status: 'ARCHIVED',
+      version: 4,
+      createdAt: isoDaysFromNow(-20, 9),
+      updatedAt: isoDaysFromNow(-2, 9),
+    },
+    {
+      id: 'budget-subscriptions',
+      categoryId: 'category-subscriptions',
+      periodType: 'WEEKLY',
+      ...weekly,
+      limitAmount: '120.00',
+      currency: 'BRL',
+      status: 'ACTIVE',
+      version: 1,
+      createdAt: isoDaysFromNow(-19, 9),
+      updatedAt: isoDaysFromNow(-19, 9),
+    },
+    {
+      id: 'budget-other',
+      categoryId: 'category-other',
+      periodType: 'CUSTOM',
+      ...monthly,
+      limitAmount: '300.00',
+      currency: 'BRL',
+      status: 'ACTIVE',
+      version: 1,
+      createdAt: isoDaysFromNow(-18, 9),
+      updatedAt: isoDaysFromNow(-18, 9),
+    },
+  ];
+  const budgetConsumptions: BudgetConsumption[] = [
+    { budgetId: 'budget-food', consumedAmount: '720.00', limitAmount: '1000.00', percentage: 72 },
+    { budgetId: 'budget-transport', consumedAmount: '380.00', limitAmount: '600.00', percentage: 63.3 },
+    { budgetId: 'budget-home', consumedAmount: '1450.00', limitAmount: '1800.00', percentage: 80.6 },
+    { budgetId: 'budget-leisure', consumedAmount: '540.00', limitAmount: '500.00', percentage: 108 },
+    { budgetId: 'budget-health', consumedAmount: '150.50', limitAmount: '400.00', percentage: 37.6 },
+    { budgetId: 'budget-education', consumedAmount: '350.00', limitAmount: '350.00', percentage: 100 },
+    { budgetId: 'budget-subscriptions', consumedAmount: '39.90', limitAmount: '120.00', percentage: 33.3 },
+    { budgetId: 'budget-other', consumedAmount: '300.00', limitAmount: '300.00', percentage: 100 },
+  ];
+  /**
+   * Histórico demonstrativo de importações, com contadores coerentes e todos os
+   * status do domínio. Nenhum arquivo é guardado: apenas metadados do job.
+   */
+  const importJobs: ImportJob[] = [
+    {
+      id: 'import-job-completed',
+      importFileId: 'import-file-completed',
+      status: 'COMPLETED',
+      totalRecords: 148,
+      processedRecords: 148,
+      successCount: 148,
+      errorCount: 0,
+      createdAt: isoDaysFromNow(-2, 10),
+      startedAt: isoDaysFromNow(-2, 10),
+      finishedAt: isoDaysFromNow(-2, 10),
+      updatedAt: isoDaysFromNow(-2, 10),
+    },
+    {
+      id: 'import-job-partial',
+      importFileId: 'import-file-partial',
+      status: 'COMPLETED_WITH_ERRORS',
+      totalRecords: 148,
+      processedRecords: 148,
+      successCount: 145,
+      errorCount: 3,
+      createdAt: isoDaysFromNow(-9, 10),
+      startedAt: isoDaysFromNow(-9, 10),
+      finishedAt: isoDaysFromNow(-9, 10),
+      updatedAt: isoDaysFromNow(-9, 10),
+    },
+    {
+      id: 'import-job-running',
+      importFileId: 'import-file-running',
+      status: 'RUNNING',
+      totalRecords: 148,
+      processedRecords: 96,
+      successCount: 94,
+      errorCount: 2,
+      createdAt: isoDaysFromNow(-1, 9),
+      startedAt: isoDaysFromNow(-1, 9),
+      updatedAt: isoDaysFromNow(-1, 9),
+    },
+    {
+      id: 'import-job-pending',
+      importFileId: 'import-file-pending',
+      status: 'PENDING',
+      totalRecords: 0,
+      processedRecords: 0,
+      successCount: 0,
+      errorCount: 0,
+      createdAt: isoDaysFromNow(0, 8),
+      updatedAt: isoDaysFromNow(0, 8),
+    },
+    {
+      id: 'import-job-failed',
+      importFileId: 'import-file-failed',
+      status: 'FAILED',
+      totalRecords: 0,
+      processedRecords: 0,
+      successCount: 0,
+      errorCount: 1,
+      createdAt: isoDaysFromNow(-32, 10),
+      startedAt: isoDaysFromNow(-32, 10),
+      finishedAt: isoDaysFromNow(-32, 10),
+      updatedAt: isoDaysFromNow(-32, 10),
+    },
+    {
+      id: 'import-job-april',
+      importFileId: 'import-file-april',
+      status: 'COMPLETED',
+      totalRecords: 96,
+      processedRecords: 96,
+      successCount: 96,
+      errorCount: 0,
+      createdAt: isoDaysFromNow(-62, 10),
+      startedAt: isoDaysFromNow(-62, 10),
+      finishedAt: isoDaysFromNow(-62, 10),
+      updatedAt: isoDaysFromNow(-62, 10),
+    },
+    {
+      id: 'import-job-march',
+      importFileId: 'import-file-march',
+      status: 'COMPLETED_WITH_ERRORS',
+      totalRecords: 112,
+      processedRecords: 112,
+      successCount: 110,
+      errorCount: 2,
+      createdAt: isoDaysFromNow(-92, 10),
+      startedAt: isoDaysFromNow(-92, 10),
+      finishedAt: isoDaysFromNow(-92, 10),
+      updatedAt: isoDaysFromNow(-92, 10),
+    },
+  ];
+  const importJobErrors: DemoImportJobError[] = [
+    {
+      id: 'import-error-partial-1',
+      importJobId: 'import-job-partial',
+      lineNumber: 24,
+      errorType: 'PARSE_ERROR',
+      message: 'Data em formato não reconhecido.',
+      createdAt: isoDaysFromNow(-9, 10),
+    },
+    {
+      id: 'import-error-partial-2',
+      importJobId: 'import-job-partial',
+      lineNumber: 78,
+      errorType: 'VALIDATION_ERROR',
+      message: 'Valor da movimentação ausente.',
+      createdAt: isoDaysFromNow(-9, 10),
+    },
+    {
+      id: 'import-error-partial-3',
+      importJobId: 'import-job-partial',
+      lineNumber: 116,
+      errorType: 'VALIDATION_ERROR',
+      message: 'Descrição excede o tamanho permitido.',
+      createdAt: isoDaysFromNow(-9, 10),
+    },
+    {
+      id: 'import-error-failed-1',
+      importJobId: 'import-job-failed',
+      errorType: 'PARSE_ERROR',
+      message: 'O cabeçalho do arquivo não pôde ser interpretado.',
+      createdAt: isoDaysFromNow(-32, 10),
+    },
+    {
+      id: 'import-error-march-1',
+      importJobId: 'import-job-march',
+      lineNumber: 41,
+      errorType: 'VALIDATION_ERROR',
+      message: 'Valor da movimentação ausente.',
+      createdAt: isoDaysFromNow(-92, 10),
+    },
+    {
+      id: 'import-error-march-2',
+      importJobId: 'import-job-march',
+      lineNumber: 87,
+      errorType: 'UNKNOWN',
+      message: 'Não foi possível processar este registro.',
+      createdAt: isoDaysFromNow(-92, 10),
+    },
+  ];
   const insights: DemoInsight[] = [
     {
       id: 'insight-leisure',
@@ -219,7 +517,7 @@ export function createDemoSeed(): DemoState {
   ];
 
   return {
-    version: 2,
+    version: 4,
     user,
     profile,
     preferences: {
@@ -239,35 +537,10 @@ export function createDemoSeed(): DemoState {
     transactions,
     suggestions,
     budgets,
-    imports: [
-      {
-        id: 'import-july',
-        fileName: 'movimentacoes-julho-demo.csv',
-        status: 'COMPLETED',
-        createdAt: isoDaysFromNow(-2, 10),
-        result: { totalRecords: 148, processedRecords: 148, successCount: 142, errorCount: 3, duplicateRecords: 3, publishedRecords: 142, errors: [] },
-      },
-      {
-        id: 'import-june',
-        fileName: 'movimentacoes-junho-demo.ofx',
-        status: 'COMPLETED_WITH_ERRORS',
-        createdAt: isoDaysFromNow(-32, 10),
-        result: {
-          totalRecords: 148,
-          processedRecords: 148,
-          successCount: 142,
-          errorCount: 3,
-          duplicateRecords: 3,
-          publishedRecords: 142,
-          errors: [
-            { line: 24, message: 'Data inválida' },
-            { line: 78, message: 'Valor inválido' },
-            { line: 116, message: 'Categoria não reconhecida' },
-          ],
-        },
-      },
-      { id: 'import-may', fileName: 'movimentacoes-maio-demo.csv', status: 'FAILED', createdAt: isoDaysFromNow(-62, 10) },
-    ],
+    budgetRecords,
+    budgetConsumptions,
+    importJobs,
+    importJobErrors,
     metrics: [
       { key: 'TOTAL_SPENT', label: 'Total gasto', amount: money(324050), helperText: 'No período demonstrativo' },
       { key: 'INCOME', label: 'Receitas', amount: money(680000), helperText: 'Entradas no período' },

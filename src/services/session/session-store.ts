@@ -60,6 +60,13 @@ export class SessionStore {
 
   getAccessToken = () => this.snapshot.accessToken;
 
+  /**
+   * Identificador do usuário autenticado. Serve para os contratos que ainda
+   * exigem `userId` explícito; a autorização real permanece no backend, a partir
+   * do JWT.
+   */
+  getUserId = () => this.snapshot.currentUser?.id ?? null;
+
   establishSession(result: AuthenticationResult) {
     const persistedSession: PersistedSession = {
       tokens: result.tokens,

@@ -62,6 +62,11 @@ type ProgressProps = {
   value: number;
   label: string;
   tone?: BadgeTone;
+  /**
+   * Texto lido por leitores de tela quando o valor real precisa ser anunciado
+   * sem o limite visual da barra — por exemplo, um consumo de 125%.
+   */
+  valueText?: string;
 };
 
 function clampPercentage(value: number) {
@@ -72,6 +77,7 @@ export function ProgressBar({
   label,
   tone = 'success',
   value,
+  valueText,
 }: ProgressProps) {
   const percentage = clampPercentage(value);
 
@@ -81,6 +87,7 @@ export function ProgressBar({
       aria-valuemax={100}
       aria-valuemin={0}
       aria-valuenow={percentage}
+      aria-valuetext={valueText}
       className={`progress-bar progress-bar--${tone}`}
       role="progressbar"
     >

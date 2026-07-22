@@ -10,6 +10,11 @@ export type ApiError = {
   status?: number;
   traceId?: string;
   retryAfter?: string;
+  /**
+   * Header `Location` da resposta, quando presente. É dado não confiável: quem
+   * consome deve validá-lo antes de usar, e nunca navegar diretamente para ele.
+   */
+  location?: string;
   fieldErrors?: ApiFieldError[];
   details?: unknown;
 };
@@ -159,6 +164,7 @@ export function adaptApiError(
     context.headers?.get('x-correlation-id') ??
     context.correlationId;
   const retryAfter = context.headers?.get('retry-after')?.trim() || undefined;
+  const location = context.headers?.get('location')?.trim() || undefined;
   const fieldErrors =
     parseFieldErrors(root?.fieldErrors) ??
     parseFieldErrors(detailsRecord?.fieldErrors) ??
@@ -172,6 +178,7 @@ export function adaptApiError(
     ...(status ? { status } : {}),
     ...(traceId ? { traceId } : {}),
     ...(retryAfter ? { retryAfter } : {}),
+    ...(location ? { location } : {}),
     ...(fieldErrors ? { fieldErrors } : {}),
     ...(details !== undefined ? { details } : {}),
   };

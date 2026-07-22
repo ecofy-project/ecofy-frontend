@@ -7,6 +7,7 @@ import { CategoriesPage } from '../features/categories/pages/CategoriesPage';
 import { ManualCategorizationPage } from '../features/categories/pages/ManualCategorizationPage';
 import { SuggestionsPage } from '../features/categories/pages/SuggestionsPage';
 import { GoalsPage } from '../features/goals/pages/GoalsPage';
+import { ImportDetailsPage } from '../features/imports/pages/ImportDetailsPage';
 import { ImportsPage } from '../features/imports/pages/ImportsPage';
 import { InsightsPage } from '../features/insights/pages/InsightsPage';
 import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
@@ -49,6 +50,15 @@ const routeTitles = Object.fromEntries(
     .map((item) => [item.path, item.label]),
 );
 
+const importDetailsPattern = /^\/imports\/([^/]+)$/;
+
+/** Rota de detalhes de importação: `/imports/{id}`. */
+function readImportJobId(pathname: string): string | null {
+  const match = importDetailsPattern.exec(pathname);
+  const id = match?.[1] ? decodeURIComponent(match[1]).trim() : '';
+  return id || null;
+}
+
 const publicRouteTitles: Record<string, string> = {
   '/login': 'Entrar',
   '/register': 'Criar conta',
@@ -88,10 +98,15 @@ function PublicPage({ pathname }: { pathname: string }) {
 }
 
 function ProtectedPage({ pathname }: { pathname: string }) {
-  const title = routeTitles[pathname] ?? 'Página não encontrada';
+  const importJobId = readImportJobId(pathname);
+  const title = importJobId
+    ? 'Detalhes da importação'
+    : (routeTitles[pathname] ?? 'Página não encontrada');
   let content: ReactNode;
 
-  if (pathname === '/') {
+  if (importJobId) {
+    content = <ImportDetailsPage jobId={importJobId} />;
+  } else if (pathname === '/') {
     content = <DashboardPage />;
   } else if (pathname === '/design-system') {
     content = <FoundationPage />;
@@ -140,6 +155,7 @@ function RoutedApplication() {
   const title =
     publicRouteTitles[pathname] ??
     routeTitles[pathname] ??
+    (readImportJobId(pathname) ? 'Detalhes da importação' : undefined) ??
     'Página não encontrada';
   const isPublicRoute = pathname in publicRouteTitles;
 

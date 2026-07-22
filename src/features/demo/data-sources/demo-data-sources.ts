@@ -1,30 +1,13 @@
 import type {
-  BudgetOverview,
   DemoDashboard,
-  DemoImport,
-  DemoImportProgress,
   DemoInsight,
   DemoNotification,
   GoalOverview,
-  SaveBudgetInput,
   SaveGoalInput,
 } from '../types/demo';
 
 export interface DashboardDataSource {
   getDashboard(): Promise<DemoDashboard>;
-}
-
-export interface BudgetDataSource {
-  getBudgetOverview(): Promise<BudgetOverview>;
-  saveBudget(input: SaveBudgetInput): Promise<BudgetOverview>;
-}
-
-export interface ImportDataSource {
-  listImports(): Promise<readonly DemoImport[]>;
-  startImport(
-    file: Readonly<{ name: string; size: number }>,
-    onProgress: (progress: DemoImportProgress) => void,
-  ): Promise<readonly DemoImport[]>;
 }
 
 export interface GoalDataSource {
@@ -44,8 +27,6 @@ export interface NotificationDataSource {
 
 export type DemoDataSources = Readonly<{
   dashboard: DashboardDataSource;
-  budget: BudgetDataSource;
-  imports: ImportDataSource;
   goals: GoalDataSource;
   insights: InsightsDataSource;
   notifications: NotificationDataSource;

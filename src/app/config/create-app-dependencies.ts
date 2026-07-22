@@ -1,17 +1,21 @@
 import { ApiAuthDataSource } from '../../features/auth/data-sources/api-auth-data-source';
 import type { AuthDataSource } from '../../features/auth/data-sources/auth-data-source';
 import { AuthService } from '../../features/auth/services/auth-service';
+import { ApiBudgetDataSource } from '../../features/budgets/data-sources/api-budget-data-source';
+import type { BudgetDataSource } from '../../features/budgets/data-sources/budget-data-source';
+import { BudgetService } from '../../features/budgets/services/budget-service';
 import { ApiCategorizationDataSource } from '../../features/categories/data-sources/api-categorization-data-source';
 import type { CategorizationDataSource } from '../../features/categories/data-sources/categorization-data-source';
 import { CategorizationService } from '../../features/categories/services/categorization-service';
 import {
-  ApiBudgetDataSource,
   ApiDashboardDataSource,
   ApiGoalDataSource,
-  ApiImportDataSource,
   ApiInsightsDataSource,
   ApiNotificationDataSource,
 } from '../../features/demo/data-sources/api-demo-data-sources';
+import { ApiImportDataSource } from '../../features/imports/data-sources/api-import-data-source';
+import type { ImportDataSource } from '../../features/imports/data-sources/import-data-source';
+import { ImportService } from '../../features/imports/services/import-service';
 import type { DemoDataSources } from '../../features/demo/data-sources/demo-data-sources';
 import { DemoService } from '../../features/demo/services/demo-service';
 import { ApiFoundationDataSource } from '../../features/foundation/data-sources/api-foundation-data-source';
@@ -21,15 +25,15 @@ import { ApiUserDataSource } from '../../features/users/data-sources/api-user-da
 import type { UserDataSource } from '../../features/users/data-sources/user-data-source';
 import { UserService } from '../../features/users/services/user-service';
 import { MockAuthDataSource } from '../../mocks/data-sources/mock-auth-data-source';
+import { MockBudgetDataSource } from '../../mocks/data-sources/mock-budget-data-source';
 import { MockCategorizationDataSource } from '../../mocks/data-sources/mock-categorization-data-source';
 import {
-  MockBudgetDataSource,
   MockDashboardDataSource,
   MockGoalDataSource,
-  MockImportDataSource,
   MockInsightsDataSource,
   MockNotificationDataSource,
 } from '../../mocks/data-sources/mock-demo-data-sources';
+import { MockImportDataSource } from '../../mocks/data-sources/mock-import-data-source';
 import { MockFoundationDataSource } from '../../mocks/data-sources/mock-foundation-data-source';
 import { MockUserDataSource } from '../../mocks/data-sources/mock-user-data-source';
 import { createDemoPersistence, DemoStore } from '../../mocks/demo/demo-store';
@@ -43,6 +47,8 @@ export type AppDependencies = Readonly<{
   foundationService: FoundationService;
   userService: UserService;
   categorizationService: CategorizationService;
+  budgetService: BudgetService;
+  importService: ImportService;
   demoService: DemoService;
   demoStore?: DemoStore;
   demoEnabled: boolean;
@@ -60,8 +66,6 @@ function createApiDependencies(
   });
   const demoDataSources: DemoDataSources = {
     dashboard: new ApiDashboardDataSource(),
-    budget: new ApiBudgetDataSource(),
-    imports: new ApiImportDataSource(),
     goals: new ApiGoalDataSource(),
     insights: new ApiInsightsDataSource(),
     notifications: new ApiNotificationDataSource(),
@@ -72,6 +76,10 @@ function createApiDependencies(
     foundationDataSource: new ApiFoundationDataSource(httpClient),
     userDataSource: new ApiUserDataSource(httpClient),
     categorizationDataSource: new ApiCategorizationDataSource(httpClient),
+    budgetDataSource: new ApiBudgetDataSource(httpClient, {
+      getUserId: sessionStore.getUserId,
+    }),
+    importDataSource: new ApiImportDataSource(httpClient),
     demoDataSources,
   };
 }
@@ -86,6 +94,8 @@ export function createAppDependencies(): AppDependencies {
   let foundationDataSource: FoundationDataSource;
   let userDataSource: UserDataSource;
   let categorizationDataSource: CategorizationDataSource;
+  let budgetDataSource: BudgetDataSource;
+  let importDataSource: ImportDataSource;
   let demoDataSources: DemoDataSources;
   let demoStore: DemoStore | undefined;
 
@@ -107,10 +117,10 @@ export function createAppDependencies(): AppDependencies {
       demoStore,
       options,
     );
+    budgetDataSource = new MockBudgetDataSource(demoStore, options);
+    importDataSource = new MockImportDataSource(demoStore, options);
     demoDataSources = {
       dashboard: new MockDashboardDataSource(demoStore, options),
-      budget: new MockBudgetDataSource(demoStore, options),
-      imports: new MockImportDataSource(demoStore, options),
       goals: new MockGoalDataSource(demoStore, options),
       insights: new MockInsightsDataSource(demoStore, options),
       notifications: new MockNotificationDataSource(demoStore, options),
@@ -129,6 +139,8 @@ export function createAppDependencies(): AppDependencies {
     foundationDataSource = api.foundationDataSource;
     userDataSource = api.userDataSource;
     categorizationDataSource = api.categorizationDataSource;
+    budgetDataSource = api.budgetDataSource;
+    importDataSource = api.importDataSource;
     demoDataSources = api.demoDataSources;
   }
 
@@ -137,6 +149,10 @@ export function createAppDependencies(): AppDependencies {
     foundationService: new FoundationService(foundationDataSource),
     userService: new UserService(userDataSource),
     categorizationService: new CategorizationService(categorizationDataSource),
+    budgetService: new BudgetService(budgetDataSource),
+    importService: new ImportService(importDataSource, {
+      maxFileSizeBytes: config.maxImportFileSizeBytes,
+    }),
     demoService: new DemoService(demoDataSources),
     ...(demoStore ? { demoStore } : {}),
     demoEnabled: config.dataMode === 'mock',

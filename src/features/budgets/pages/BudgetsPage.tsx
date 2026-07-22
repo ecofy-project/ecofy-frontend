@@ -1,241 +1,262 @@
-import { useState, type FormEvent } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useSession } from '../../../app/providers/SessionProvider';
 import {
   Button,
   Card,
-  CurrencyInput,
+  Drawer,
   EmptyState,
-  ErrorState,
-  LoadingState,
-  Modal,
-  ProgressBar,
-  Select,
-  StatusBadge,
-  useToast,
+  Pagination,
 } from '../../../components/ui';
-import type { BadgeTone } from '../../../components/ui';
-import { useBudgets } from '../../demo/hooks/use-demo-data';
-import type { DemoBudget, DemoBudgetStatus } from '../../demo/types/demo';
-import { formatDemoMoney, parseDemoMoney } from '../../demo/utils/demo-format';
+import { useCategories } from '../../categories/hooks/use-categories';
+import { usePreferences } from '../../users/hooks/use-preferences';
+import { BudgetFilters } from '../components/BudgetFilters';
+import { BudgetFormModal } from '../components/BudgetFormModal';
+import { BudgetList } from '../components/BudgetList';
+import {
+  BudgetErrorState,
+  BudgetListSkeleton,
+} from '../components/BudgetResourceState';
+import { useBudgetOverview } from '../hooks/use-budget-overview';
+import { useBudgets } from '../hooks/use-budgets';
+import type {
+  Budget,
+  CreateBudgetInput,
+  UpdateBudgetInput,
+} from '../types/budget';
 
-type BudgetFormState = {
-  id?: string;
-  categoryId: string;
-  limit: string;
-  status: DemoBudgetStatus;
-};
+const fallbackCurrency = 'BRL';
 
-const emptyForm: BudgetFormState = {
-  categoryId: '',
-  limit: '',
-  status: 'ACTIVE',
-};
-
-function usedPercentage(budget: DemoBudget) {
-  return budget.limit.cents > 0
-    ? Math.round((budget.spent.cents / budget.limit.cents) * 100)
-    : 0;
-}
-
-function budgetTone(budget: DemoBudget): BadgeTone {
-  const used = usedPercentage(budget);
-  if (budget.status === 'PAUSED') return 'paused';
-  if (budget.status === 'ARCHIVED') return 'neutral';
-  if (used > 100) return 'danger';
-  if (used >= 80) return 'near-limit';
-  return 'success';
-}
-
-function statusLabel(status: DemoBudgetStatus) {
-  return { ACTIVE: 'Ativo', PAUSED: 'Pausado', ARCHIVED: 'Arquivado' }[status];
-}
-
+/**
+ * Coordena listagem, filtros, paginação, criação, edição e overview. A página
+ * não conhece o modo de execução, não monta requisições e não calcula valores
+ * financeiros.
+ */
 export function BudgetsPage() {
+  const { currentUser } = useSession();
+  const categories = useCategories();
   const budgets = useBudgets();
-  const { showToast } = useToast();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState<BudgetFormState>(emptyForm);
-  const [formError, setFormError] = useState('');
+  const [overviewToken, setOverviewToken] = useState(0);
+  const overview = useBudgetOverview(overviewToken);
+  const preferences = usePreferences(currentUser?.id);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
-  function openCreate() {
-    setForm(emptyForm);
-    setFormError('');
-    setModalOpen(true);
-  }
+  const availableCategories = useMemo(
+    () => categories.categories ?? [],
+    [categories.categories],
+  );
 
-  function openEdit(budget: DemoBudget) {
-    setForm({
-      id: budget.id,
-      categoryId: budget.categoryId,
-      limit: (budget.limit.cents / 100).toFixed(2).replace('.', ','),
-      status: budget.status,
-    });
-    setFormError('');
-    setModalOpen(true);
-  }
+  /** Lookup preparado uma única vez: nenhum card faz requisição própria. */
+  const categoryNames = useMemo(() => {
+    const names = new Map<string, string>();
+    availableCategories.forEach((category) =>
+      names.set(category.id, category.name),
+    );
+    return names;
+  }, [availableCategories]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const defaultCurrency =
+    preferences.data?.DEFAULT_CURRENCY ??
+    budgets.budgets?.content[0]?.currency ??
+    fallbackCurrency;
 
-    if (!form.categoryId) {
-      setFormError('Selecione uma categoria.');
-      return;
-    }
+  const revalidateOverview = useCallback(
+    () => setOverviewToken((current) => current + 1),
+    [],
+  );
 
-    try {
-      const result = await budgets.saveBudget({
-        ...form,
-        limit: parseDemoMoney(form.limit, budgets.data?.currency ?? 'BRL'),
-      });
+  const {
+    changeFilters,
+    clearSaveError,
+    createBudget,
+    removeBudget,
+    reload: reloadBudgets,
+    updateBudget,
+  } = budgets;
+
+  const handleCreate = useCallback(
+    async (input: CreateBudgetInput) => {
+      const result = await createBudget(input);
 
       if (result.ok) {
-        setModalOpen(false);
-        showToast({
-          title: form.id ? 'Orçamento atualizado' : 'Orçamento criado',
-          message: 'O planejamento foi salvo somente nesta demonstração.',
-          tone: 'success',
-        });
+        revalidateOverview();
       }
-    } catch (error) {
-      setFormError(
-        error instanceof Error ? error.message : 'Informe um limite válido.',
-      );
-    }
+
+      return result;
+    },
+    [createBudget, revalidateOverview],
+  );
+
+  const handleUpdate = useCallback(
+    async (id: string, input: UpdateBudgetInput) => {
+      const result = await updateBudget(id, input);
+
+      if (result.ok) {
+        revalidateOverview();
+      }
+
+      return result;
+    },
+    [revalidateOverview, updateBudget],
+  );
+
+  const handleRemove = useCallback(
+    async (id: string) => {
+      const result = await removeBudget(id);
+
+      if (result.ok) {
+        revalidateOverview();
+      }
+
+      return result;
+    },
+    [removeBudget, revalidateOverview],
+  );
+
+  function openCreate() {
+    clearSaveError();
+    setEditingBudget(null);
+    setIsFormOpen(true);
   }
 
-  if (budgets.isLoading) {
-    return <LoadingState label="Carregando orçamentos" />;
+  function openEdit(budget: Budget) {
+    clearSaveError();
+    setEditingBudget(budget);
+    setIsFormOpen(true);
   }
 
-  if (budgets.error && !budgets.data) {
-    return (
-      <ErrorState
-        actionLabel="Tentar novamente"
-        description={budgets.error.message}
-        onAction={budgets.reload}
-      />
-    );
+  function refreshAll() {
+    reloadBudgets();
+    revalidateOverview();
   }
+
+  const page = budgets.budgets;
+  const hasFilters = Boolean(
+    budgets.filters.status ?? budgets.filters.categoryId,
+  );
+  const isUpdating = budgets.isRefreshing || overview.isRefreshing;
+
+  const filtersPanel = (
+    <BudgetFilters
+      categories={availableCategories}
+      disabled={budgets.isLoading}
+      filters={budgets.filters}
+      onFiltersChange={changeFilters}
+      onSortChange={budgets.changeSort}
+      sort={budgets.sort}
+    />
+  );
 
   return (
     <div className="demo-page">
       <header className="demo-page__header">
         <div>
-          <span className="demo-eyebrow">PLANEJAMENTO DO MÊS</span>
+          <span className="demo-eyebrow">PLANEJAMENTO POR CATEGORIA</span>
           <h1>Orçamentos</h1>
-          <p>Limites claros para gastar com intenção, sem perder o contexto.</p>
+          <p>
+            Limites, consumo e período de cada orçamento, exatamente como o
+            serviço de budgeting os publica.
+          </p>
         </div>
         <Button leadingIcon="wallet" onClick={openCreate}>
           Novo orçamento
         </Button>
       </header>
 
-      {!budgets.data?.budgets.length ? (
-        <Card as="section">
-          <EmptyState
-            actionLabel="Criar orçamento"
-            description="Defina um limite por categoria para acompanhar sua evolução."
-            onAction={openCreate}
-            title="Nenhum orçamento ativo"
-          />
+      <div className="budget-toolbar">
+        <Button
+          className="budget-toolbar__filters-trigger"
+          onClick={() => setIsFilterDrawerOpen(true)}
+          variant="outline"
+        >
+          Filtros e ordenação
+        </Button>
+        <Button onClick={refreshAll} size="sm" variant="ghost">
+          Atualizar informações
+        </Button>
+        <p aria-live="polite" className="budget-toolbar__status">
+          {isUpdating ? 'Atualizando informações...' : ''}
+        </p>
+      </div>
+
+      <Card as="section" className="budget-filters-panel">
+        {filtersPanel}
+      </Card>
+
+      {budgets.isLoading ? (
+        <BudgetListSkeleton />
+      ) : budgets.error ? (
+        <BudgetErrorState error={budgets.error} onRetry={reloadBudgets} />
+      ) : !page || page.content.length === 0 ? (
+        <Card as="section" className="budget-state-card">
+          {hasFilters ? (
+            <EmptyState
+              actionLabel="Limpar filtros"
+              description="Nenhum orçamento corresponde aos filtros aplicados."
+              onAction={() => changeFilters({})}
+              title="Nenhum resultado"
+            />
+          ) : (
+            <EmptyState
+              actionLabel="Criar orçamento"
+              description="Defina um limite por categoria e período para acompanhar seu consumo."
+              onAction={openCreate}
+              title="Nenhum orçamento cadastrado"
+            />
+          )}
         </Card>
       ) : (
-        <section aria-label="Orçamentos" className="demo-card-grid demo-card-grid--budgets">
-          {budgets.data.budgets.map((budget) => {
-            const used = usedPercentage(budget);
-            const tone = budgetTone(budget);
-            return (
-              <Card as="article" className="budget-card" key={budget.id}>
-                <div className="budget-card__heading">
-                  <div>
-                    <span className="demo-eyebrow">{statusLabel(budget.status)}</span>
-                    <h2>{budget.categoryName}</h2>
-                  </div>
-                  <StatusBadge tone={tone}>{used}%</StatusBadge>
-                </div>
-                <div className="budget-card__amounts">
-                  <strong>{formatDemoMoney(budget.spent)}</strong>
-                  <span>de {formatDemoMoney(budget.limit)}</span>
-                </div>
-                <ProgressBar
-                  label={`${budget.categoryName}: ${used}% utilizado`}
-                  tone={tone}
-                  value={used}
-                />
-                <Button onClick={() => openEdit(budget)} size="sm" variant="ghost">
-                  Editar limite
-                </Button>
-              </Card>
-            );
-          })}
-        </section>
+        <div
+          className={`budget-results ${
+            budgets.isRefreshing ? 'budget-results--updating' : ''
+          }`.trim()}
+        >
+          <BudgetList
+            budgets={page.content}
+            categoryNames={categoryNames}
+            consumptionByBudget={overview.consumptionByBudget}
+            isConsumptionLoading={overview.isLoading}
+            onEdit={openEdit}
+          />
+          <Pagination
+            onPageChange={budgets.changePage}
+            page={page.page}
+            totalElements={page.totalElements}
+            totalPages={page.totalPages}
+          />
+        </div>
       )}
 
-      <Modal
-        footer={
-          <>
-            <Button onClick={() => setModalOpen(false)} variant="ghost">
-              Cancelar
-            </Button>
-            <Button form="budget-form" loading={budgets.isSaving} type="submit">
-              Salvar orçamento
-            </Button>
-          </>
-        }
-        onClose={() => setModalOpen(false)}
-        open={modalOpen}
-        title={form.id ? 'Editar orçamento' : 'Novo orçamento'}
+      {overview.error ? (
+        <p className="budget-overview-notice" role="status">
+          O consumo não pôde ser carregado agora. Os limites continuam
+          disponíveis.
+        </p>
+      ) : null}
+
+      <Drawer
+        onClose={() => setIsFilterDrawerOpen(false)}
+        open={isFilterDrawerOpen}
+        title="Filtros e ordenação"
       >
-        <form className="demo-form" id="budget-form" onSubmit={handleSubmit}>
-          <Select
-            label="Categoria"
-            onChange={(event) => {
-              const categoryId = event.currentTarget.value;
-              setForm((current) => ({
-                ...current,
-                categoryId,
-              }));
-              setFormError('');
-            }}
-            options={(budgets.data?.categories ?? []).map((category) => ({
-              label: category.name,
-              value: category.id,
-            }))}
-            placeholder="Selecione"
-            value={form.categoryId}
-          />
-          <CurrencyInput
-            currency={budgets.data?.currency}
-            error={formError}
-            label="Limite"
-            onChange={(event) => {
-              const limit = event.currentTarget.value;
-              setForm((current) => ({
-                ...current,
-                limit,
-              }));
-              setFormError('');
-            }}
-            placeholder="1.000,00"
-            value={form.limit}
-          />
-          <Select
-            label="Status"
-            onChange={(event) => {
-              const status = event.currentTarget.value as DemoBudgetStatus;
-              setForm((current) => ({
-                ...current,
-                status,
-              }));
-            }}
-            options={[
-              { value: 'ACTIVE', label: 'Ativo' },
-              { value: 'PAUSED', label: 'Pausado' },
-              { value: 'ARCHIVED', label: 'Arquivado' },
-            ]}
-            value={form.status}
-          />
-        </form>
-      </Modal>
+        {filtersPanel}
+      </Drawer>
+
+      <BudgetFormModal
+        budget={editingBudget}
+        categories={availableCategories}
+        defaultCurrency={defaultCurrency}
+        error={budgets.saveError}
+        isSaving={budgets.isSaving}
+        onClearError={clearSaveError}
+        onClose={() => setIsFormOpen(false)}
+        onCreate={handleCreate}
+        onRefreshBudget={budgets.refreshBudget}
+        onRemove={handleRemove}
+        onUpdate={handleUpdate}
+        open={isFormOpen}
+      />
     </div>
   );
 }

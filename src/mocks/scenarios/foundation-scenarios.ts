@@ -59,6 +59,27 @@ export function resolveFoundationMockScenario(
     case 'categories-empty':
     case 'category-create-error':
     case 'manual-error':
+    case 'budgets-empty':
+    case 'budget-single':
+    case 'budgets-multiple':
+    case 'budget-paused':
+    case 'budget-archived':
+    case 'consumption-partial':
+    case 'consumption-full':
+    case 'budget-conflict':
+    case 'budget-error':
+    case 'imports-empty':
+    case 'import-completed':
+    case 'import-completed-with-errors':
+    case 'import-failed':
+    case 'import-pending':
+    case 'import-running':
+    case 'import-already-processed':
+    case 'import-idempotency-mismatch':
+    case 'import-file-too-large':
+    case 'import-unsupported-type':
+    case 'import-invalid-header':
+    case 'import-error':
       return { kind: 'success', data: defaultFoundationSummary };
   }
 }
