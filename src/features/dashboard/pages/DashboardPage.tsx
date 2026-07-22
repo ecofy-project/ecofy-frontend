@@ -1,250 +1,148 @@
+import { useMemo } from 'react';
 import { useSession } from '../../../app/providers/SessionProvider';
+import { navigate } from '../../../app/routing/router';
+import { Card } from '../../../components/ui';
+import { useBudgetOverview } from '../../budgets/hooks/use-budget-overview';
+import { useBudgets } from '../../budgets/hooks/use-budgets';
+import { useCategories } from '../../categories/hooks/use-categories';
+import { GoalCard } from '../../goals/components/GoalCard';
+import { InsightList } from '../../insights/components/InsightList';
 import {
-  Card,
-  EmptyState,
-  ErrorState,
-  Icon,
-  LoadingState,
-  ProgressBar,
-  ProgressRing,
-  StatusBadge,
-} from '../../../components/ui';
-import type { BadgeTone, IconName } from '../../../components/ui';
-import { useDashboard } from '../../demo/hooks/use-demo-data';
-import type { DemoBudget, DemoMoney } from '../../demo/types/demo';
-import { formatCurrency, fromCents } from '../../../services/money/money';
+  DegradedNotice,
+  InsightsErrorState,
+  InsightsSkeleton,
+} from '../../insights/components/InsightsResourceState';
+import { useInsightsBundle } from '../../insights/hooks/use-insights-bundle';
+import { DashboardBudgets } from '../components/DashboardBudgets';
+import { DashboardMetrics } from '../components/DashboardMetrics';
+import { DashboardSection } from '../components/DashboardSection';
+import { RecentActivity } from '../components/RecentActivity';
+import { buildRecentActivity } from '../utils/dashboard-activity';
 
-function formatMoney(money: DemoMoney) {
-  return formatCurrency(fromCents(money.cents, money.currency));
-}
+const budgetsPreviewLimit = 3;
+const insightsPreviewLimit = 3;
+const goalsPreviewLimit = 3;
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-  }).format(new Date(value));
-}
-
-function percentage(spent: DemoMoney, limit: DemoMoney) {
-  return limit.cents > 0 ? Math.round((spent.cents / limit.cents) * 100) : 0;
-}
-
-function budgetTone(budget: DemoBudget): BadgeTone {
-  const used = percentage(budget.spent, budget.limit);
-
-  if (budget.status === 'PAUSED') return 'paused';
-  if (used > 100) return 'danger';
-  if (used >= 80) return 'near-limit';
-  return 'success';
-}
-
-const activityIcons: Record<string, IconName> = {
-  budget: 'wallet',
-  import: 'imports',
-  insight: 'insights',
-  goal: 'goal',
-};
-
-function SectionHeading({
-  description,
-  title,
-}: {
-  description?: string;
-  title: string;
-}) {
-  return (
-    <div className="dashboard-section__heading">
-      <div>
-        <h2>{title}</h2>
-        {description ? <p>{description}</p> : null}
-      </div>
-    </div>
-  );
-}
-
+/**
+ * Visão analítica consolidada.
+ *
+ * Todos os números vêm prontos dos Data Sources: nenhuma métrica, consumo ou
+ * progresso é calculado aqui. Os orçamentos reutilizam integralmente a feature
+ * da Etapa 5.
+ */
 export function DashboardPage() {
   const { currentUser } = useSession();
-  const dashboard = useDashboard();
+  const dashboard = useInsightsBundle();
+  const budgets = useBudgets();
+  const overview = useBudgetOverview();
+  const categories = useCategories();
+
   const firstName =
     currentUser?.fullName?.trim().split(/\s+/)[0] ||
     currentUser?.email?.split('@')[0] ||
     'você';
 
-  if (dashboard.isLoading) {
-    return <LoadingState label="Carregando resumo financeiro" />;
-  }
-
-  if (dashboard.error && !dashboard.data) {
-    return (
-      <Card as="section">
-        <ErrorState
-          actionLabel="Tentar novamente"
-          description={dashboard.error.message}
-          onAction={dashboard.reload}
-        />
-      </Card>
+  const categoryNames = useMemo(() => {
+    const names = new Map<string, string>();
+    (categories.categories ?? []).forEach((category) =>
+      names.set(category.id, category.name),
     );
-  }
+    return names;
+  }, [categories.categories]);
 
-  if (!dashboard.data || dashboard.data.metrics.length === 0) {
-    return (
-      <Card as="section">
-        <EmptyState
-          description="Importe suas primeiras transações para visualizar gastos, orçamentos e insights."
-          title="Seu resumo financeiro começa aqui"
-        />
-      </Card>
-    );
-  }
+  const bundle = dashboard.bundle;
+  const activity = useMemo(
+    () => buildRecentActivity(bundle?.insights ?? [], bundle?.goals ?? []),
+    [bundle],
+  );
+  const hasBundle = bundle !== null;
 
   return (
     <div className="dashboard-page">
       <header className="dashboard-welcome">
         <div>
-          <span className="dashboard-welcome__eyebrow">
-            VISÃO FINANCEIRA · {dashboard.data.periodLabel.toUpperCase()}
-          </span>
-          <h1>Olá, {firstName}. Seu mês está no caminho certo.</h1>
-          <p>Veja o que merece atenção agora e avance com tranquilidade.</p>
+          <span className="dashboard-welcome__eyebrow">VISÃO FINANCEIRA</span>
+          <h1>Olá, {firstName}</h1>
+          <p>
+            Seu resumo financeiro, orçamentos, análises e metas em um só lugar.
+          </p>
         </div>
-        <StatusBadge tone="success">Ritmo saudável</StatusBadge>
       </header>
 
-      <section aria-label="Métricas do período" className="dashboard-metrics demo-metrics">
-        {dashboard.data.metrics.map((metric) => {
-          const visual =
-            metric.key === 'TOTAL_SPENT'
-              ? { icon: 'wallet' as IconName, modifier: '' }
-              : metric.key === 'INCOME'
-                ? { icon: 'dashboard' as IconName, modifier: 'dashboard-metric__icon--teal' }
-                : { icon: 'insights' as IconName, modifier: 'dashboard-metric__icon--violet' };
-          return (
-            <Card as="article" className="dashboard-metric" key={metric.key}>
-              <span className={`dashboard-metric__icon ${visual.modifier}`.trim()}>
-                <Icon name={visual.icon} size={18} />
-              </span>
-              <span className="dashboard-metric__label">{metric.label}</span>
-              <strong className="dashboard-metric__value">
-                {'amount' in metric
-                  ? formatMoney(metric.amount)
-                  : `${metric.percentage.toLocaleString('pt-BR')}%`}
-              </strong>
-              <span className="dashboard-metric__helper">{metric.helperText}</span>
-            </Card>
-          );
-        })}
-      </section>
+      <p aria-live="polite" className="dashboard-status">
+        {dashboard.isRefreshing ? 'Atualizando informações...' : ''}
+      </p>
 
-      <section className="dashboard-section" aria-labelledby="budgets-heading">
-        <div id="budgets-heading">
-          <SectionHeading
-            description="Valores reais da demonstração comparados aos limites definidos."
-            title="Orçamentos principais"
+      {dashboard.isDegraded && hasBundle ? (
+        <DegradedNotice onRetry={dashboard.reload} />
+      ) : null}
+
+      {dashboard.error && !hasBundle ? (
+        <InsightsErrorState error={dashboard.error} onRetry={dashboard.reload} />
+      ) : (
+        <DashboardMetrics metrics={bundle?.metrics ?? []} />
+      )}
+
+      <DashboardSection
+        actionLabel="Ver orçamentos"
+        actionTo="/budgets"
+        description="Limites e consumo publicados pelo serviço de orçamentos."
+        title="Orçamentos"
+      >
+        <DashboardBudgets
+          budgets={(budgets.budgets?.content ?? []).slice(
+            0,
+            budgetsPreviewLimit,
+          )}
+          categoryNames={categoryNames}
+          consumptionByBudget={overview.consumptionByBudget}
+          isConsumptionLoading={overview.isLoading}
+          isLoading={budgets.isLoading}
+          onEdit={() => navigate('/budgets')}
+        />
+      </DashboardSection>
+
+      <DashboardSection
+        actionLabel="Ver todas as análises"
+        actionTo="/insights"
+        description="Leituras registradas pelo serviço de insights."
+        title="EcoFy Insights"
+      >
+        {dashboard.isLoading ? (
+          <InsightsSkeleton cards={insightsPreviewLimit} />
+        ) : (
+          <InsightList
+            insights={(bundle?.insights ?? []).slice(0, insightsPreviewLimit)}
+            label="Análises recentes"
           />
-        </div>
-        <div className="budget-list">
-          {dashboard.data.budgets.slice(0, 4).map((budget) => {
-            const used = percentage(budget.spent, budget.limit);
-            const tone = budgetTone(budget);
-            return (
-              <article className="budget-row" key={budget.id}>
-                <div className="budget-row__top">
-                  <div>
-                    <h3>{budget.categoryName}</h3>
-                    <p className="numeric">
-                      {formatMoney(budget.spent)} de {formatMoney(budget.limit)}
-                    </p>
-                  </div>
-                  <StatusBadge tone={tone}>
-                    {budget.status === 'PAUSED'
-                      ? 'Pausado'
-                      : used > 100
-                        ? 'Acima do limite'
-                        : 'Ativo'}
-                  </StatusBadge>
-                </div>
-                <ProgressBar
-                  label={`${budget.categoryName}: ${used}% do orçamento utilizado`}
-                  tone={tone}
-                  value={used}
-                />
-                <span className="budget-row__percent numeric">{used}% utilizado</span>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+        )}
+      </DashboardSection>
 
-      <section className="dashboard-section" aria-labelledby="insights-heading">
-        <div id="insights-heading">
-          <SectionHeading
-            description="Leituras automáticas baseadas no mesmo cenário financeiro."
-            title="EcoFy Insights"
-          />
-        </div>
-        <div className="insight-grid">
-          {dashboard.data.insights.map((insight) => (
-            <article className="insight-card" key={insight.id}>
-              <span className="insight-card__icon">
-                <Icon name="insights" size={19} />
-              </span>
-              <span className="insight-card__period">{insight.periodLabel}</span>
-              <h3>{insight.title}</h3>
-              <p>{insight.message}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-split">
+      <div className="dashboard-split">
         <Card as="section" className="dashboard-panel">
-          <SectionHeading
-            description="Objetivos construídos com valores explícitos."
+          <DashboardSection
+            actionLabel="Ver todas as metas"
+            actionTo="/goals"
+            description="Objetivos registrados com valor alvo e status."
             title="Metas"
-          />
-          <div className="goal-list">
-            {dashboard.data.goals.map((goal) => {
-              const progress = Math.round(
-                (goal.saved.cents / goal.target.cents) * 100,
-              );
-              return (
-                <article className="goal-row" key={goal.id}>
-                  <ProgressRing label={goal.name} tone="success" value={progress} />
-                  <div className="goal-row__copy">
-                    <h3>{goal.name}</h3>
-                    <p className="numeric">
-                      {formatMoney(goal.saved)} de {formatMoney(goal.target)}
-                    </p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          >
+            <div className="dashboard-goal-list">
+              {(bundle?.goals ?? []).slice(0, goalsPreviewLimit).map((goal) => (
+                <GoalCard goal={goal} key={goal.id} />
+              ))}
+            </div>
+          </DashboardSection>
         </Card>
 
         <Card as="section" className="dashboard-panel">
-          <SectionHeading
-            description="Mudanças recentes nesta demonstração."
+          <DashboardSection
+            description="Análises geradas e metas atualizadas recentemente."
             title="Atividade recente"
-          />
-          <ol className="activity-list">
-            {dashboard.data.activity.map((activity) => (
-              <li key={activity.id}>
-                <span className="activity-list__icon">
-                  <Icon name={activityIcons[activity.kind] ?? 'info'} size={17} />
-                </span>
-                <div>
-                  <h3>{activity.title}</h3>
-                  <p>{activity.description}</p>
-                  <time dateTime={activity.createdAt}>
-                    {formatDate(activity.createdAt)}
-                  </time>
-                </div>
-              </li>
-            ))}
-          </ol>
+          >
+            <RecentActivity items={activity} />
+          </DashboardSection>
         </Card>
-      </section>
+      </div>
     </div>
   );
 }

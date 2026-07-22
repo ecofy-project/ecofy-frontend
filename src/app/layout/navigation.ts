@@ -4,7 +4,6 @@ export type NavigationItem = {
   label: string;
   path: string;
   icon: IconName;
-  badge?: number;
 };
 
 export type NavigationGroup = {
@@ -66,7 +65,6 @@ export const navigationGroups: NavigationGroup[] = [
         label: 'Notificações',
         path: '/notifications',
         icon: 'notifications',
-        badge: 3,
       },
     ],
   },

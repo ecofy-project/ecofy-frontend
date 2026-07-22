@@ -21,7 +21,7 @@ function isDemoState(value: unknown): value is DemoState {
 
   const state = value as Partial<DemoState>;
   return (
-    state.version === 4 &&
+    state.version === 6 &&
     typeof state.user === 'object' &&
     typeof state.profile === 'object' &&
     typeof state.preferences === 'object' &&
@@ -30,13 +30,13 @@ function isDemoState(value: unknown): value is DemoState {
     Array.isArray(state.rules) &&
     Array.isArray(state.transactions) &&
     Array.isArray(state.suggestions) &&
-    Array.isArray(state.budgets) &&
     Array.isArray(state.budgetRecords) &&
     Array.isArray(state.budgetConsumptions) &&
     Array.isArray(state.importJobs) &&
     Array.isArray(state.importJobErrors) &&
-    Array.isArray(state.goals) &&
-    Array.isArray(state.insights) &&
+    Array.isArray(state.metricSnapshots) &&
+    Array.isArray(state.insightRecords) &&
+    Array.isArray(state.goalRecords) &&
     Array.isArray(state.notifications)
   );
 }

@@ -7,17 +7,18 @@ import { BudgetService } from '../../features/budgets/services/budget-service';
 import { ApiCategorizationDataSource } from '../../features/categories/data-sources/api-categorization-data-source';
 import type { CategorizationDataSource } from '../../features/categories/data-sources/categorization-data-source';
 import { CategorizationService } from '../../features/categories/services/categorization-service';
-import {
-  ApiDashboardDataSource,
-  ApiGoalDataSource,
-  ApiInsightsDataSource,
-  ApiNotificationDataSource,
-} from '../../features/demo/data-sources/api-demo-data-sources';
+import { ApiNotificationDataSource } from '../../features/notifications/data-sources/api-notification-data-source';
+import type { NotificationDataSource } from '../../features/notifications/data-sources/notification-data-source';
+import { NotificationService } from '../../features/notifications/services/notification-service';
+import { ApiGoalDataSource } from '../../features/goals/data-sources/api-goal-data-source';
+import type { GoalDataSource } from '../../features/goals/data-sources/goal-data-source';
+import { GoalService } from '../../features/goals/services/goal-service';
+import { ApiInsightsDataSource } from '../../features/insights/data-sources/api-insights-data-source';
+import type { InsightsDataSource } from '../../features/insights/data-sources/insights-data-source';
+import { InsightsService } from '../../features/insights/services/insights-service';
 import { ApiImportDataSource } from '../../features/imports/data-sources/api-import-data-source';
 import type { ImportDataSource } from '../../features/imports/data-sources/import-data-source';
 import { ImportService } from '../../features/imports/services/import-service';
-import type { DemoDataSources } from '../../features/demo/data-sources/demo-data-sources';
-import { DemoService } from '../../features/demo/services/demo-service';
 import { ApiFoundationDataSource } from '../../features/foundation/data-sources/api-foundation-data-source';
 import type { FoundationDataSource } from '../../features/foundation/data-sources/foundation-data-source';
 import { FoundationService } from '../../features/foundation/services/foundation-service';
@@ -27,13 +28,10 @@ import { UserService } from '../../features/users/services/user-service';
 import { MockAuthDataSource } from '../../mocks/data-sources/mock-auth-data-source';
 import { MockBudgetDataSource } from '../../mocks/data-sources/mock-budget-data-source';
 import { MockCategorizationDataSource } from '../../mocks/data-sources/mock-categorization-data-source';
-import {
-  MockDashboardDataSource,
-  MockGoalDataSource,
-  MockInsightsDataSource,
-  MockNotificationDataSource,
-} from '../../mocks/data-sources/mock-demo-data-sources';
+import { MockNotificationDataSource } from '../../mocks/data-sources/mock-notification-data-source';
+import { MockGoalDataSource } from '../../mocks/data-sources/mock-goal-data-source';
 import { MockImportDataSource } from '../../mocks/data-sources/mock-import-data-source';
+import { MockInsightsDataSource } from '../../mocks/data-sources/mock-insights-data-source';
 import { MockFoundationDataSource } from '../../mocks/data-sources/mock-foundation-data-source';
 import { MockUserDataSource } from '../../mocks/data-sources/mock-user-data-source';
 import { createDemoPersistence, DemoStore } from '../../mocks/demo/demo-store';
@@ -49,7 +47,9 @@ export type AppDependencies = Readonly<{
   categorizationService: CategorizationService;
   budgetService: BudgetService;
   importService: ImportService;
-  demoService: DemoService;
+  insightsService: InsightsService;
+  goalService: GoalService;
+  notificationService: NotificationService;
   demoStore?: DemoStore;
   demoEnabled: boolean;
   sessionStore: SessionStore;
@@ -64,23 +64,21 @@ function createApiDependencies(
     baseUrl: gatewayUrl,
     session: { getAccessToken: sessionStore.getAccessToken },
   });
-  const demoDataSources: DemoDataSources = {
-    dashboard: new ApiDashboardDataSource(),
-    goals: new ApiGoalDataSource(),
-    insights: new ApiInsightsDataSource(),
-    notifications: new ApiNotificationDataSource(),
-  };
+  const currentUser = { getUserId: sessionStore.getUserId };
 
   return {
     authDataSource: new ApiAuthDataSource(httpClient, authClientId),
     foundationDataSource: new ApiFoundationDataSource(httpClient),
     userDataSource: new ApiUserDataSource(httpClient),
     categorizationDataSource: new ApiCategorizationDataSource(httpClient),
-    budgetDataSource: new ApiBudgetDataSource(httpClient, {
-      getUserId: sessionStore.getUserId,
-    }),
+    budgetDataSource: new ApiBudgetDataSource(httpClient, currentUser),
     importDataSource: new ApiImportDataSource(httpClient),
-    demoDataSources,
+    insightsDataSource: new ApiInsightsDataSource(httpClient, currentUser),
+    goalDataSource: new ApiGoalDataSource(httpClient, currentUser),
+    notificationDataSource: new ApiNotificationDataSource(
+      httpClient,
+      currentUser,
+    ),
   };
 }
 
@@ -96,7 +94,9 @@ export function createAppDependencies(): AppDependencies {
   let categorizationDataSource: CategorizationDataSource;
   let budgetDataSource: BudgetDataSource;
   let importDataSource: ImportDataSource;
-  let demoDataSources: DemoDataSources;
+  let insightsDataSource: InsightsDataSource;
+  let goalDataSource: GoalDataSource;
+  let notificationDataSource: NotificationDataSource;
   let demoStore: DemoStore | undefined;
 
   if (config.dataMode === 'mock') {
@@ -119,12 +119,9 @@ export function createAppDependencies(): AppDependencies {
     );
     budgetDataSource = new MockBudgetDataSource(demoStore, options);
     importDataSource = new MockImportDataSource(demoStore, options);
-    demoDataSources = {
-      dashboard: new MockDashboardDataSource(demoStore, options),
-      goals: new MockGoalDataSource(demoStore, options),
-      insights: new MockInsightsDataSource(demoStore, options),
-      notifications: new MockNotificationDataSource(demoStore, options),
-    };
+    insightsDataSource = new MockInsightsDataSource(demoStore, options);
+    goalDataSource = new MockGoalDataSource(demoStore, options);
+    notificationDataSource = new MockNotificationDataSource(demoStore, options);
   } else {
     if (!config.apiGatewayUrl) {
       throw new Error('O API Gateway é obrigatório no modo API.');
@@ -141,7 +138,9 @@ export function createAppDependencies(): AppDependencies {
     categorizationDataSource = api.categorizationDataSource;
     budgetDataSource = api.budgetDataSource;
     importDataSource = api.importDataSource;
-    demoDataSources = api.demoDataSources;
+    insightsDataSource = api.insightsDataSource;
+    goalDataSource = api.goalDataSource;
+    notificationDataSource = api.notificationDataSource;
   }
 
   return Object.freeze({
@@ -153,7 +152,9 @@ export function createAppDependencies(): AppDependencies {
     importService: new ImportService(importDataSource, {
       maxFileSizeBytes: config.maxImportFileSizeBytes,
     }),
-    demoService: new DemoService(demoDataSources),
+    insightsService: new InsightsService(insightsDataSource),
+    goalService: new GoalService(goalDataSource),
+    notificationService: new NotificationService(notificationDataSource),
     ...(demoStore ? { demoStore } : {}),
     demoEnabled: config.dataMode === 'mock',
     sessionStore,

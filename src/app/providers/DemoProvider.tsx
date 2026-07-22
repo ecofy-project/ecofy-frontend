@@ -3,7 +3,6 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { demoCredentials } from '../../mocks/demo/demo-seed';
@@ -11,32 +10,23 @@ import { useAppDependencies } from './AppDependenciesProvider';
 import { useSession } from './SessionProvider';
 import { useTheme } from './ThemeProvider';
 
+/**
+ * `NotificationResponse` não publica marcação de leitura, então não existe
+ * contagem de não lidas — nem no Mock Mode, que reproduz o mesmo contrato.
+ */
 type DemoContextValue = Readonly<{
   enabled: boolean;
-  unreadCount: number;
   credentials: typeof demoCredentials;
   enterDemo: () => Promise<void>;
   resetDemo: () => void;
 }>;
 
 const DemoContext = createContext<DemoContextValue | null>(null);
-const subscribeDisabled = () => () => undefined;
-const getDisabledSnapshot = () => 0;
 
 export function DemoProvider({ children }: { children: ReactNode }) {
   const { demoEnabled, demoStore } = useAppDependencies();
   const { login, logout } = useSession();
   const { setPreference } = useTheme();
-  const unreadCount = useSyncExternalStore(
-    demoStore?.subscribe ?? subscribeDisabled,
-    demoStore
-      ? () =>
-          demoStore
-            .getState()
-            .notifications.filter((notification) => !notification.read).length
-      : getDisabledSnapshot,
-    getDisabledSnapshot,
-  );
 
   const enterDemo = useCallback(
     () => login(demoCredentials),
@@ -50,12 +40,11 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       enabled: demoEnabled,
-      unreadCount,
       credentials: demoCredentials,
       enterDemo,
       resetDemo,
     }),
-    [demoEnabled, enterDemo, resetDemo, unreadCount],
+    [demoEnabled, enterDemo, resetDemo],
   );
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;

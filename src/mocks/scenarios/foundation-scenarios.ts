@@ -80,6 +80,22 @@ export function resolveFoundationMockScenario(
     case 'import-unsupported-type':
     case 'import-invalid-header':
     case 'import-error':
+    case 'dashboard-default':
+    case 'dashboard-empty':
+    case 'dashboard-error':
+    case 'dashboard-degraded':
+    case 'insights-empty':
+    case 'insight-generation-success':
+    case 'insight-generation-error':
+    case 'rebuild-processing':
+    case 'rebuild-completed':
+    case 'goals-empty':
+    case 'goals-multiple':
+    case 'goal-error':
+    case 'notifications-empty':
+    case 'notifications-error':
+    case 'notification-resend-failed':
+    case 'notification-resend-error':
       return { kind: 'success', data: defaultFoundationSummary };
   }
 }

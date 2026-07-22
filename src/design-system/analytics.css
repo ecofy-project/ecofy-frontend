@@ -1,0 +1,230 @@
+/* Dashboard, insights e metas — cores exclusivamente por tokens. */
+
+.insight-eyebrow {
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-micro);
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.dashboard-status,
+.insights-list__status,
+.goals-status {
+  min-height: 1.25rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dashboard-section__action {
+  color: var(--color-primary-hover);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard-section__action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.dashboard-goal-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.link-button {
+  padding: 0;
+  color: var(--color-primary-hover);
+  background: none;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Insights */
+
+.insights-list,
+.insights-state-card,
+.generate-insight-card,
+.insights-rebuild-card {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.insights-list__filters {
+  min-width: 16rem;
+}
+
+.insights-list__results {
+  display: grid;
+  gap: var(--space-5);
+  transition: opacity 160ms ease;
+}
+
+.insights-list__results--updating {
+  opacity: 0.72;
+}
+
+.insight-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.insight-card__icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-pill);
+  place-items: center;
+}
+
+.insight-card__body {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.insight-card__body h3 {
+  font-size: var(--font-size-base);
+}
+
+.insight-card__type {
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.insight-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.generate-insight-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: end;
+}
+
+.generate-insight-form__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.insights-rebuild-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.insights-rebuild-card__confirm {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+/* Metas */
+
+.goals-state-card {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.goal-card {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.goal-card__heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.goal-card__heading h3 {
+  font-size: var(--font-size-base);
+}
+
+.goal-card__target {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}
+
+.goal-card__caption {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.goal-card .button {
+  justify-self: start;
+  margin-top: var(--space-2);
+}
+
+.goal-form {
+  display: grid;
+  gap: var(--space-5);
+  width: min(100%, 34rem);
+}
+
+.goal-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 63.999rem) {
+  .generate-insight-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .generate-insight-form,
+  .goal-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .generate-insight-form__actions .button,
+  .insights-rebuild-card__actions .button {
+    width: 100%;
+  }
+
+  .insights-list__filters {
+    min-width: 100%;
+  }
+
+  .goal-form {
+    width: 100%;
+  }
+
+  .insight-card {
+    grid-template-columns: 1fr;
+  }
+}

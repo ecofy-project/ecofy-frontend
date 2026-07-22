@@ -9,6 +9,7 @@ import {
   Modal,
   Tooltip,
 } from '../../components/ui';
+import { NotificationDropdown } from '../../features/notifications/components/NotificationDropdown';
 import { useDemo } from '../providers/DemoProvider';
 import { useSession } from '../providers/SessionProvider';
 import { AppLink, usePathname } from '../routing/router';
@@ -39,8 +40,6 @@ function NavLink({
   pathname: string;
   onNavigate?: () => void;
 }) {
-  const { enabled, unreadCount } = useDemo();
-  const badge = item.path === '/notifications' && enabled ? unreadCount : 0;
   const link = (
     <AppLink
       aria-current={pathname === item.path ? 'page' : undefined}
@@ -52,11 +51,6 @@ function NavLink({
         <Icon name={item.icon} size={19} />
       </span>
       <span className="nav-item__label">{item.label}</span>
-      {badge > 0 ? (
-        <span aria-label={`${badge} novas`} className="nav-item__badge">
-          {badge}
-        </span>
-      ) : null}
     </AppLink>
   );
 
@@ -139,8 +133,7 @@ function Topbar({
   pageTitle: string;
 }) {
   const { currentUser, logout } = useSession();
-  const { enabled, unreadCount } = useDemo();
-  const pathname = usePathname();
+  const { enabled } = useDemo();
   const displayName = currentUser?.fullName || currentUser?.email || 'Conta';
   const initials =
     displayName
@@ -167,23 +160,8 @@ function Topbar({
         ) : null}
       </div>
       <div className="topbar__actions">
-        {pathname === '/' ? (
-          <span className="topbar__period" aria-label="Período exibido: julho de 2026">
-            <Icon name="calendar" size={16} />
-            <span>Jul 2026</span>
-          </span>
-        ) : null}
         <ThemeMenu />
-        <span className="topbar__notifications">
-          <IconButton
-            icon="bell"
-            label="Abrir notificações"
-            onClick={() => navigate('/notifications')}
-          />
-          {enabled && unreadCount > 0 ? (
-            <span aria-hidden="true" className="topbar__notification-dot" />
-          ) : null}
-        </span>
+        <NotificationDropdown />
         <Dropdown
           label="Conta"
           trigger={

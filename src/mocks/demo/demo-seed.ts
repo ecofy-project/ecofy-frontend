@@ -9,18 +9,16 @@ import type {
   CategorizationSuggestion,
   Category,
 } from '../../features/categories/types/categorization';
-import type {
-  DemoActivity,
-  DemoBudget,
-  DemoGoal,
-  DemoInsight,
-  DemoMetric,
-  DemoNotification,
-} from '../../features/demo/types/demo';
+import type { Notification } from '../../features/notifications/types/notification';
+import type { Goal } from '../../features/goals/types/goal';
 import type {
   ImportError,
   ImportJob,
 } from '../../features/imports/types/import';
+import type {
+  Insight,
+  MetricSnapshot,
+} from '../../features/insights/types/insights';
 import type {
   UserConnection,
   UserPreferences,
@@ -36,7 +34,7 @@ export const demoCredentials = Object.freeze({
 export type DemoImportJobError = ImportError & { importJobId: string };
 
 export type DemoState = {
-  version: 4;
+  version: 6;
   user: AuthenticatedUser;
   profile: UserProfile;
   preferences: UserPreferences;
@@ -45,8 +43,6 @@ export type DemoState = {
   rules: CategorizationRule[];
   transactions: CategorizableTransaction[];
   suggestions: CategorizationSuggestion[];
-  /** Projeção usada pelo resumo do dashboard. */
-  budgets: DemoBudget[];
   /** Orçamentos no contrato de `ms-budgeting`, usados pela feature de budgets. */
   budgetRecords: Budget[];
   /** Consumos prontos, como o backend os publica em `/budgets/overview`. */
@@ -54,11 +50,11 @@ export type DemoState = {
   /** Metadados de importação. Nenhum arquivo ou conteúdo é armazenado. */
   importJobs: ImportJob[];
   importJobErrors: DemoImportJobError[];
-  metrics: DemoMetric[];
-  goals: DemoGoal[];
-  insights: DemoInsight[];
-  notifications: DemoNotification[];
-  activity: DemoActivity[];
+  /** Snapshots de métrica no contrato de `ms-insights`. */
+  metricSnapshots: MetricSnapshot[];
+  insightRecords: Insight[];
+  goalRecords: Goal[];
+  notifications: Notification[];
 };
 
 function isoDaysFromNow(days: number, hour = 12) {
@@ -66,10 +62,6 @@ function isoDaysFromNow(days: number, hour = 12) {
   date.setHours(hour, 0, 0, 0);
   date.setDate(date.getDate() + days);
   return date.toISOString();
-}
-
-function money(cents: number) {
-  return { cents, currency: 'BRL' } as const;
 }
 
 /** Datas `LocalDate` (`YYYY-MM-DD`), no formato aceito pelo budgeting. */
@@ -216,13 +208,6 @@ export function createDemoSeed(): DemoState {
       status: 'UNMATCHED',
       score: 0,
     },
-  ];
-  const budgets: DemoBudget[] = [
-    { id: 'budget-food', categoryId: 'category-food', categoryName: 'Alimentação', spent: money(72000), limit: money(100000), status: 'ACTIVE' },
-    { id: 'budget-transport', categoryId: 'category-transport', categoryName: 'Transporte', spent: money(38000), limit: money(60000), status: 'ACTIVE' },
-    { id: 'budget-home', categoryId: 'category-home', categoryName: 'Moradia', spent: money(145000), limit: money(180000), status: 'ACTIVE' },
-    { id: 'budget-leisure', categoryId: 'category-leisure', categoryName: 'Lazer', spent: money(54000), limit: money(50000), status: 'ACTIVE' },
-    { id: 'budget-health', categoryId: 'category-health', categoryName: 'Saúde', spent: money(15050), limit: money(40000), status: 'PAUSED' },
   ];
   const monthly = currentMonthPeriod();
   const weekly = currentWeekPeriod();
@@ -482,42 +467,211 @@ export function createDemoSeed(): DemoState {
       createdAt: isoDaysFromNow(-92, 10),
     },
   ];
-  const insights: DemoInsight[] = [
+  /**
+   * Métricas, insights e metas são dados prontos, coerentes com os orçamentos e
+   * consumos do seed. O frontend nunca os calcula.
+   *
+   * `SAVINGS_RATE` trafega no mesmo value object monetário do contrato, com
+   * escala 2: 1840 representa 18,40%.
+   */
+  const metricSnapshots: MetricSnapshot[] = [
     {
-      id: 'insight-leisure',
-      title: 'Lazer pede uma pausa',
-      message: 'O orçamento de lazer ultrapassou o limite em 8%. Rever os próximos gastos pode devolver margem ao mês.',
-      periodLabel: 'ESTE MÊS',
+      id: 'metric-total-spent',
+      metricType: 'TOTAL_SPENT',
+      valueCents: 324050,
+      currency: 'BRL',
+      createdAt: isoDaysFromNow(-1, 6),
+    },
+    {
+      id: 'metric-income',
+      metricType: 'INCOME',
+      valueCents: 680000,
+      currency: 'BRL',
+      createdAt: isoDaysFromNow(-1, 6),
+    },
+    {
+      id: 'metric-savings-rate',
+      metricType: 'SAVINGS_RATE',
+      valueCents: 1840,
+      currency: 'BRL',
+      createdAt: isoDaysFromNow(-1, 6),
+    },
+  ];
+  const insightRecords: Insight[] = [
+    {
+      id: 'insight-spending-breakdown',
+      type: 'SPENDING_BREAKDOWN',
+      score: 72,
+      title: 'Alimentação concentra a maior parte das saídas',
+      summary:
+        'A categoria Alimentação responde por R$ 720,00 das saídas registradas no período.',
+      period: { start: monthly.periodStart, end: monthly.periodEnd, granularity: 'MONTH' },
       createdAt: isoDaysFromNow(-1, 10),
     },
     {
-      id: 'insight-savings',
-      title: 'Economia em ritmo estável',
-      message: 'Sua taxa de economia permanece em 18,4% no período demonstrativo.',
-      periodLabel: 'ÚLTIMOS 30 DIAS',
+      id: 'insight-cashflow',
+      type: 'CASHFLOW',
+      score: 64,
+      title: 'Entradas superaram as saídas no período',
+      summary:
+        'As receitas do período ficaram acima das saídas consolidadas, preservando margem para as metas.',
+      period: { start: monthly.periodStart, end: monthly.periodEnd, granularity: 'MONTH' },
       createdAt: isoDaysFromNow(-2, 15),
     },
     {
-      id: 'insight-transport',
-      title: 'Transporte com margem',
-      message: 'Ainda há R$ 220,00 disponíveis no orçamento de transporte até o fim do período.',
-      periodLabel: 'PROJEÇÃO',
+      id: 'insight-anomaly',
+      type: 'ANOMALY',
+      score: 58,
+      title: 'Movimentação fora do padrão em Lazer',
+      summary:
+        'O consumo de Lazer ultrapassou o limite definido para o período analisado.',
+      period: { start: monthly.periodStart, end: monthly.periodEnd, granularity: 'MONTH' },
       createdAt: isoDaysFromNow(-3, 9),
     },
+    {
+      id: 'insight-weekly-cashflow',
+      type: 'CASHFLOW',
+      score: 51,
+      title: 'Semana com saídas concentradas no início',
+      summary:
+        'A maior parte das saídas da semana analisada ocorreu nos três primeiros dias.',
+      period: { start: weekly.periodStart, end: weekly.periodEnd, granularity: 'WEEK' },
+      createdAt: isoDaysFromNow(-5, 9),
+    },
+    {
+      id: 'insight-subscriptions',
+      type: 'SPENDING_BREAKDOWN',
+      score: 44,
+      title: 'Assinaturas mantêm valor recorrente estável',
+      summary:
+        'As saídas de Assinaturas permaneceram no mesmo patamar do período anterior.',
+      period: { start: monthly.periodStart, end: monthly.periodEnd, granularity: 'MONTH' },
+      createdAt: isoDaysFromNow(-8, 9),
+    },
+    {
+      id: 'insight-health-anomaly',
+      type: 'ANOMALY',
+      score: 39,
+      title: 'Saúde sem movimentações no período',
+      summary:
+        'Nenhuma movimentação foi registrada em Saúde durante o período analisado.',
+      period: { start: monthly.periodStart, end: monthly.periodEnd, granularity: 'MONTH' },
+      createdAt: isoDaysFromNow(-12, 9),
+    },
+    {
+      id: 'insight-daily-spending',
+      type: 'SPENDING_BREAKDOWN',
+      score: 33,
+      title: 'Gasto diário concentrado em alimentação',
+      summary:
+        'No recorte diário, Alimentação aparece como a categoria mais frequente.',
+      period: { start: monthly.periodStart, end: monthly.periodEnd, granularity: 'DAY' },
+      createdAt: isoDaysFromNow(-16, 9),
+    },
   ];
-  const goals: DemoGoal[] = [
-    { id: 'goal-emergency', name: 'Reserva de emergência', saved: money(840000), target: money(1500000), targetDate: isoDaysFromNow(240) },
-    { id: 'goal-travel', name: 'Viagem de fim de ano', saved: money(520000), target: money(800000), targetDate: isoDaysFromNow(150) },
+  const goalRecords: Goal[] = [
+    {
+      id: 'goal-emergency',
+      name: 'Reserva de emergência',
+      targetCents: 1500000,
+      currency: 'BRL',
+      status: 'ACTIVE',
+      createdAt: isoDaysFromNow(-120, 9),
+      updatedAt: isoDaysFromNow(-6, 9),
+    },
+    {
+      id: 'goal-travel',
+      name: 'Viagem de fim de ano',
+      targetCents: 800000,
+      currency: 'BRL',
+      status: 'ACTIVE',
+      createdAt: isoDaysFromNow(-90, 9),
+      updatedAt: isoDaysFromNow(-8, 9),
+    },
+    {
+      id: 'goal-course',
+      name: 'Curso de especialização',
+      targetCents: 450000,
+      currency: 'BRL',
+      status: 'PAUSED',
+      createdAt: isoDaysFromNow(-60, 9),
+      updatedAt: isoDaysFromNow(-20, 9),
+    },
+    {
+      id: 'goal-notebook',
+      name: 'Troca de notebook',
+      targetCents: 600000,
+      currency: 'BRL',
+      status: 'ARCHIVED',
+      createdAt: isoDaysFromNow(-200, 9),
+      updatedAt: isoDaysFromNow(-40, 9),
+    },
   ];
-  const notifications: DemoNotification[] = [
-    { id: 'notification-budget', title: 'Limite de lazer alcançado', message: 'O orçamento de Lazer chegou a 108% do valor definido.', createdAt: isoDaysFromNow(0, 9), read: false, kind: 'budget' },
-    { id: 'notification-insight', title: 'Novo insight disponível', message: 'Uma nova leitura sobre sua taxa de economia está pronta.', createdAt: isoDaysFromNow(-1, 16), read: false, kind: 'insight' },
-    { id: 'notification-import', title: 'Importação concluída', message: '142 movimentações demonstrativas foram publicadas.', createdAt: isoDaysFromNow(-2, 11), read: false, kind: 'import' },
-    { id: 'notification-goal', title: 'Meta avançou', message: 'A meta Viagem de fim de ano alcançou 65%.', createdAt: isoDaysFromNow(-4, 14), read: true, kind: 'goal' },
+  /**
+   * Notificações no contrato de `ms-notification`. Os textos são
+   * demonstrativos e coerentes com os orçamentos e análises do seed; os únicos
+   * eventos possíveis são `BUDGET_ALERT` e `INSIGHT_CREATED`.
+   */
+  const notifications: Notification[] = [
+    {
+      id: 'notification-budget-leisure',
+      eventType: 'BUDGET_ALERT',
+      channel: 'EMAIL',
+      subject: 'Seu orçamento atingiu o limite definido',
+      body: 'O orçamento de Lazer chegou a 108% do valor definido para o período.',
+      status: 'SENT',
+      attemptCount: 1,
+      createdAt: isoDaysFromNow(0, 9),
+      updatedAt: isoDaysFromNow(0, 9),
+    },
+    {
+      id: 'notification-insight-cashflow',
+      eventType: 'INSIGHT_CREATED',
+      channel: 'PUSH',
+      subject: 'Um novo insight financeiro está disponível',
+      body: 'Uma nova leitura sobre o fluxo de caixa do período foi registrada.',
+      status: 'SENT',
+      attemptCount: 1,
+      createdAt: isoDaysFromNow(-1, 16),
+      updatedAt: isoDaysFromNow(-1, 16),
+    },
+    {
+      id: 'notification-budget-food',
+      eventType: 'BUDGET_ALERT',
+      channel: 'WHATSAPP',
+      subject: 'Alimentação se aproxima do limite',
+      body: 'O orçamento de Alimentação chegou a 72% do valor definido.',
+      status: 'PENDING',
+      attemptCount: 1,
+      createdAt: isoDaysFromNow(-2, 11),
+      updatedAt: isoDaysFromNow(-2, 11),
+    },
+    {
+      id: 'notification-insight-anomaly',
+      eventType: 'INSIGHT_CREATED',
+      channel: 'EMAIL',
+      subject: 'Movimentação atípica identificada',
+      body: 'Uma movimentação fora do padrão foi registrada em Lazer.',
+      status: 'FAILED',
+      attemptCount: 3,
+      createdAt: isoDaysFromNow(-4, 14),
+      updatedAt: isoDaysFromNow(-4, 15),
+    },
+    {
+      id: 'notification-budget-home',
+      eventType: 'BUDGET_ALERT',
+      channel: 'PUSH',
+      subject: 'Moradia ultrapassou 80% do limite',
+      body: 'O orçamento de Moradia chegou a 80,6% do valor definido.',
+      status: 'CANCELED',
+      attemptCount: 1,
+      createdAt: isoDaysFromNow(-8, 10),
+      updatedAt: isoDaysFromNow(-8, 10),
+    },
   ];
 
   return {
-    version: 4,
+    version: 6,
     user,
     profile,
     preferences: {
@@ -536,24 +690,13 @@ export function createDemoSeed(): DemoState {
     rules,
     transactions,
     suggestions,
-    budgets,
     budgetRecords,
     budgetConsumptions,
     importJobs,
     importJobErrors,
-    metrics: [
-      { key: 'TOTAL_SPENT', label: 'Total gasto', amount: money(324050), helperText: 'No período demonstrativo' },
-      { key: 'INCOME', label: 'Receitas', amount: money(680000), helperText: 'Entradas no período' },
-      { key: 'SAVINGS_RATE', label: 'Taxa de economia', percentage: 18.4, helperText: 'Estável nos últimos 30 dias' },
-    ],
-    goals,
-    insights,
+    metricSnapshots,
+    insightRecords,
+    goalRecords,
     notifications,
-    activity: [
-      { id: 'activity-import', title: 'Importação concluída', description: '142 movimentações demonstrativas foram publicadas.', createdAt: isoDaysFromNow(-2, 10), kind: 'import' },
-      { id: 'activity-budget', title: 'Orçamento atualizado', description: 'O limite de Lazer está sendo acompanhado de perto.', createdAt: isoDaysFromNow(-3, 18), kind: 'budget' },
-      { id: 'activity-insight', title: 'Insight gerado', description: 'Uma nova leitura sobre economia foi adicionada.', createdAt: isoDaysFromNow(-4, 11), kind: 'insight' },
-      { id: 'activity-goal', title: 'Meta criada', description: 'A meta Viagem de fim de ano entrou no planejamento.', createdAt: isoDaysFromNow(-8, 9), kind: 'goal' },
-    ],
   };
 }

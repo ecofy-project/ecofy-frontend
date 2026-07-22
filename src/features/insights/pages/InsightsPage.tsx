@@ -1,46 +1,23 @@
+import { Card, EmptyState, Pagination } from '../../../components/ui';
+import { GenerateInsightForm } from '../components/GenerateInsightForm';
+import { InsightFilters } from '../components/InsightFilters';
+import { InsightList } from '../components/InsightList';
 import {
-  Button,
-  Card,
-  DegradedState,
-  EmptyState,
-  ErrorState,
-  Icon,
-  LoadingState,
-  useToast,
-} from '../../../components/ui';
-import { useInsights } from '../../demo/hooks/use-demo-data';
-import { formatDemoDate } from '../../demo/utils/demo-format';
+  DegradedNotice,
+  InsightsErrorState,
+  InsightsSkeleton,
+} from '../components/InsightsResourceState';
+import { InsightsRebuildPanel } from '../components/InsightsRebuildPanel';
+import { useInsightList } from '../hooks/use-insight-list';
 
+/**
+ * Listagem, recorte e geração de análises. A página não conhece o modo de
+ * execução, não monta requisições e não executa nenhum algoritmo analítico.
+ */
 export function InsightsPage() {
-  const insights = useInsights();
-  const { showToast } = useToast();
-
-  async function handleGenerate() {
-    const result = await insights.generateInsight();
-
-    if (result.ok) {
-      showToast({
-        title: 'Insight gerado',
-        message: 'Uma nova leitura demonstrativa foi adicionada.',
-        tone: 'success',
-      });
-    }
-  }
-
-  if (insights.isLoading) {
-    return <LoadingState label="Carregando insights" />;
-  }
-
-  if (insights.error && !insights.data) {
-    const State = insights.error.status === 503 ? DegradedState : ErrorState;
-    return (
-      <State
-        actionLabel="Tentar novamente"
-        description={insights.error.message}
-        onAction={insights.reload}
-      />
-    );
-  }
+  const insights = useInsightList();
+  const page = insights.insights;
+  const hasContent = Boolean(page && page.content.length > 0);
 
   return (
     <div className="demo-page">
@@ -48,49 +25,89 @@ export function InsightsPage() {
         <div>
           <span className="demo-eyebrow">LEITURAS AUTOMÁTICAS</span>
           <h1>EcoFy Insights</h1>
-          <p>Sinais simples que transformam números em próximas decisões.</p>
+          <p>
+            Análises geradas pelo serviço de insights a partir das suas
+            movimentações.
+          </p>
         </div>
-        <Button
-          leadingIcon="insights"
-          loading={insights.isSaving}
-          onClick={handleGenerate}
-        >
-          Gerar insight
-        </Button>
       </header>
 
-      {!insights.data?.length ? (
-        <Card as="section">
-          <EmptyState
-            actionLabel="Gerar insight"
-            description="Gere uma leitura demonstrativa para visualizar este módulo."
-            onAction={handleGenerate}
-            title="Nenhum insight disponível"
-          />
-        </Card>
-      ) : (
-        <section aria-label="Insights" className="insights-showcase">
-          {insights.data.map((insight, index) => (
-            <Card
-              as="article"
-              className={`insight-feature ${index === 0 ? 'insight-feature--primary' : ''}`}
-              key={insight.id}
-            >
-              <span className="insight-feature__icon">
-                <Icon name="insights" size={20} />
-              </span>
-              <div>
-                <span className="demo-eyebrow">{insight.periodLabel}</span>
-                <h2>{insight.title}</h2>
-                <p>{insight.message}</p>
-                <time dateTime={insight.createdAt}>
-                  Gerado em {formatDemoDate(insight.createdAt)}
-                </time>
-              </div>
-            </Card>
-          ))}
-        </section>
-      )}
+      <GenerateInsightForm
+        error={insights.generateError}
+        isGenerating={insights.isGenerating}
+        onClearError={insights.clearGenerateError}
+        onSubmit={insights.generateInsights}
+      />
+
+      <section aria-labelledby="insights-list-heading" className="insights-list">
+        <div className="demo-section-heading">
+          <div>
+            <span className="demo-eyebrow">ANÁLISES REGISTRADAS</span>
+            <h2 id="insights-list-heading">Insights disponíveis</h2>
+          </div>
+          <div className="insights-list__filters">
+            <InsightFilters
+              disabled={insights.isLoading}
+              onChange={insights.changeType}
+              type={insights.type}
+            />
+          </div>
+        </div>
+
+        <p aria-live="polite" className="insights-list__status">
+          {insights.isRefreshing ? 'Atualizando informações...' : ''}
+        </p>
+
+        {insights.isDegraded && hasContent ? (
+          <DegradedNotice onRetry={insights.reload} />
+        ) : null}
+
+        {insights.isLoading ? (
+          <InsightsSkeleton />
+        ) : insights.error && !hasContent ? (
+          <InsightsErrorState error={insights.error} onRetry={insights.reload} />
+        ) : !hasContent ? (
+          <Card as="section" className="insights-state-card">
+            <EmptyState
+              description="Analise um período para registrar as primeiras leituras."
+              title={
+                insights.type
+                  ? 'Nenhuma análise deste tipo'
+                  : 'Nenhuma análise registrada'
+              }
+              {...(insights.type
+                ? {
+                    actionLabel: 'Limpar recorte',
+                    onAction: () => insights.changeType(undefined),
+                  }
+                : {})}
+            />
+          </Card>
+        ) : (
+          <div
+            className={`insights-list__results ${
+              insights.isRefreshing ? 'insights-list__results--updating' : ''
+            }`.trim()}
+          >
+            <InsightList
+              insights={page?.content ?? []}
+              label="Análises registradas"
+            />
+            {page ? (
+              <Pagination
+                onPageChange={insights.changePage}
+                page={page.page}
+                totalElements={page.totalElements}
+                totalPages={page.totalPages}
+              />
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      {insights.supportsRebuild ? (
+        <InsightsRebuildPanel onFinished={insights.reload} />
+      ) : null}
     </div>
   );
 }

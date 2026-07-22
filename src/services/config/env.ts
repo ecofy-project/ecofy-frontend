@@ -39,7 +39,23 @@ export type MockScenario =
   | 'import-file-too-large'
   | 'import-unsupported-type'
   | 'import-invalid-header'
-  | 'import-error';
+  | 'import-error'
+  | 'dashboard-default'
+  | 'dashboard-empty'
+  | 'dashboard-error'
+  | 'dashboard-degraded'
+  | 'insights-empty'
+  | 'insight-generation-success'
+  | 'insight-generation-error'
+  | 'rebuild-processing'
+  | 'rebuild-completed'
+  | 'goals-empty'
+  | 'goals-multiple'
+  | 'goal-error'
+  | 'notifications-empty'
+  | 'notifications-error'
+  | 'notification-resend-failed'
+  | 'notification-resend-error';
 export type MockAuthScenario =
   | 'success'
   | 'invalid_credentials'
@@ -112,6 +128,22 @@ const supportedMockScenarios = new Set<MockScenario>([
   'import-unsupported-type',
   'import-invalid-header',
   'import-error',
+  'dashboard-default',
+  'dashboard-empty',
+  'dashboard-error',
+  'dashboard-degraded',
+  'insights-empty',
+  'insight-generation-success',
+  'insight-generation-error',
+  'rebuild-processing',
+  'rebuild-completed',
+  'goals-empty',
+  'goals-multiple',
+  'goal-error',
+  'notifications-empty',
+  'notifications-error',
+  'notification-resend-failed',
+  'notification-resend-error',
 ]);
 const supportedMockAuthScenarios = new Set<MockAuthScenario>([
   'success',
