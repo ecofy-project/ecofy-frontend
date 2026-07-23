@@ -95,8 +95,9 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Grade fluida: o número de colunas acompanha o espaço disponível. */
 .demo-card-grid--goals {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
 }
 
 .category-card {
@@ -135,13 +136,17 @@
 
 .demo-section-heading {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-4);
   align-items: center;
   justify-content: space-between;
 }
 
+/* `min-width: 0` permite que o bloco de texto encolha em vez de empurrar
+   os controles para fora da tela. */
 .demo-section-heading > div {
   display: grid;
+  min-width: 0;
   gap: var(--space-1);
 }
 
@@ -365,26 +370,9 @@
   font-size: var(--font-size-xs);
 }
 
-.goal-card {
-  display: flex;
-  min-height: 11rem;
-  gap: var(--space-5);
-  align-items: center;
-}
-
-.goal-card__content {
-  display: grid;
-  flex: 1;
-  gap: var(--space-2);
-}
-
-.goal-card__content p {
-  color: var(--color-text-secondary);
-}
-
-.goal-card__content .button {
-  justify-self: start;
-}
+/* O layout do GoalCard é definido em `analytics.css`. As regras antigas de
+   linha flexível com altura mínima rígida foram removidas: elas sobrescreviam
+   o componente atual e empurravam a ação para fora do cartão. */
 
 .insights-showcase {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -559,13 +547,11 @@
   }
 
   .demo-ledger-list li,
-  .goal-card,
   .insight-feature,
   .import-selection {
     align-items: flex-start;
   }
 
-  .goal-card,
   .insight-feature {
     flex-direction: column;
   }

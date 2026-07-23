@@ -286,10 +286,27 @@
 
 /* Tabelas */
 
+/* Rolagem apenas quando a tabela realmente não couber; o container é
+   focalizável para que o teclado também consiga percorrê-la. */
+.import-table-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+}
+
+.import-table-scroll:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .import-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
+}
+
+/* Sete colunas precisam de um piso; a tabela de erros tem três e comprime bem. */
+.import-table--history {
+  min-width: 44rem;
 }
 
 .import-table th,
@@ -338,7 +355,7 @@
 /* Histórico */
 
 .import-history__filters {
-  min-width: 14rem;
+  min-width: min(14rem, 100%);
 }
 
 .import-history__results {
@@ -462,7 +479,8 @@
   }
 
   .import-history__filters {
-    min-width: 100%;
+    min-width: 0;
+    width: 100%;
   }
 
   .import-result-card__actions .button,

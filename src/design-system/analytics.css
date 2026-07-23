@@ -60,7 +60,7 @@
 }
 
 .insights-list__filters {
-  min-width: 16rem;
+  min-width: min(16rem, 100%);
 }
 
 .insights-list__results {
@@ -217,7 +217,8 @@
   }
 
   .insights-list__filters {
-    min-width: 100%;
+    min-width: 0;
+    width: 100%;
   }
 
   .goal-form {

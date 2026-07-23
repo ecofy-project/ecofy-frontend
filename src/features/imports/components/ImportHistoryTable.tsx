@@ -14,8 +14,16 @@ import {
  */
 export function ImportHistoryTable({ jobs }: { jobs: readonly ImportJob[] }) {
   return (
-    <table className="import-table import-table--history">
-      <caption className="sr-only">Histórico de importações</caption>
+    /* Rolagem horizontal controlada em larguras intermediárias: a tabela
+       mantém a semântica e o container é focalizável para uso com teclado. */
+    <div
+      aria-label="Histórico de importações"
+      className="import-table-scroll"
+      role="region"
+      tabIndex={0}
+    >
+      <table className="import-table import-table--history">
+        <caption className="sr-only">Histórico de importações</caption>
       <thead>
         <tr>
           <th scope="col">Data</th>
@@ -53,8 +61,9 @@ export function ImportHistoryTable({ jobs }: { jobs: readonly ImportJob[] }) {
               </AppLink>
             </td>
           </tr>
-        ))}
-      </tbody>
-    </table>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

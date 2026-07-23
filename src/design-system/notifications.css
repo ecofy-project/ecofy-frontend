@@ -90,6 +90,21 @@
   padding: var(--space-4);
 }
 
+/* Em telas estreitas o menu passa a se alinhar à Topbar, que ocupa toda a
+   largura: ancorá-lo ao gatilho o empurrava para fora da borda esquerda. */
+@media (max-width: 47.999rem) {
+  .topbar__actions .dropdown__menu {
+    position: fixed;
+    right: var(--space-3);
+    left: var(--space-3);
+    width: auto;
+  }
+
+  .notification-dropdown {
+    width: auto;
+  }
+}
+
 .notification-dropdown__title {
   color: var(--color-text-secondary);
   font-family: var(--font-mono);

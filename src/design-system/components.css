@@ -167,6 +167,7 @@ fieldset.field {
 .combobox,
 .currency-input {
   width: 100%;
+  min-width: 0;
   min-height: 2.625rem;
   padding: 0.625rem var(--space-3);
   color: var(--color-text-primary);
@@ -721,7 +722,10 @@ fieldset.field {
 .modal,
 .drawer {
   width: min(100%, 34rem);
+  /* `dvh` evita que o diálogo ultrapasse a tela quando a barra dinâmica do
+     navegador móvel recolhe. A primeira declaração é o fallback. */
   max-height: min(90vh, 48rem);
+  max-height: min(90dvh, 48rem);
   overflow: auto;
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
@@ -859,9 +863,9 @@ fieldset.field {
   position: fixed;
   z-index: 200;
   right: var(--space-4);
-  bottom: var(--space-4);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
   display: grid;
-  width: min(calc(100vw - 2rem), 24rem);
+  width: min(100% - 2rem, 24rem);
   gap: var(--space-3);
   pointer-events: none;
 }
@@ -927,10 +931,47 @@ fieldset.field {
     display: grid;
   }
 
+  /* O toast sobe acima da Bottom Navigation e respeita o indicador de gesto. */
   .toast-viewport {
     right: var(--space-3);
-    bottom: calc(var(--bottom-nav-height) + var(--space-3));
+    bottom: calc(
+      var(--bottom-nav-height) + var(--space-3) + env(safe-area-inset-bottom)
+    );
     left: var(--space-3);
     width: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Ajustes para dispositivos de toque.
+
+   Aplicados apenas quando o ponteiro é grosso, preservando integralmente a
+   densidade visual do Design System em desktop com mouse.
+   --------------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+  /* O Safari no iOS amplia a página automaticamente ao focar um campo com
+     fonte menor que 16px. Manter 1rem evita o zoom e o deslocamento do layout. */
+  .field__control,
+  .select,
+  .combobox,
+  .currency-input,
+  textarea {
+    font-size: 1rem;
+  }
+
+  /* Área de toque mínima recomendada de 44 × 44px. O ícone continua com o
+     mesmo tamanho visual; apenas a área interativa cresce. */
+  .icon-button,
+  .pagination__page,
+  .dropdown__item,
+  .bottom-nav__item {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .icon-button--sm {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 }
