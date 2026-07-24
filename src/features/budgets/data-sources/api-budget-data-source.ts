@@ -1,6 +1,7 @@
 import { ApiErrorException } from '../../../services/errors/api-error';
 import type { HttpClient } from '../../../services/http';
 import { createCorrelationId } from '../../../services/http';
+import { normalizePage } from '../../../services/pagination/pagination';
 import type {
   Budget,
   BudgetListParams,
@@ -11,17 +12,31 @@ import type {
 } from '../types/budget';
 import { projectBudgetPage } from '../utils/budget-projection';
 import type { BudgetDataSource } from './budget-data-source';
-import { mapBudget, mapBudgetOverview, mapBudgets } from './budget-mappers';
+import { mapBudget, mapBudgetOverview } from './budget-mappers';
 
-const budgetingGatewayPath = '/budgeting/api/budgeting/v1/budgets';
+/**
+ * Prefixo versionado do API Gateway. A rota `/api/v1/**` reescreve para o mesmo
+ * downstream da rota legada (`/budgeting/api/budgeting/v1/budgets`), mas só ela
+ * tem CircuitBreaker, Retry e fallback configurados.
+ */
+const budgetingGatewayPath = '/api/v1/budgeting/budgets';
+
+/**
+ * Teto de página do `ms-budgeting` (`max-size`). A listagem busca uma página
+ * cheia porque o servidor não filtra por status nem categoria: os filtros da
+ * interface são aplicados sobre a coleção recebida, em `projectBudgetPage`. Um
+ * usuário tem poucos orçamentos (um por categoria e período), bem abaixo desse
+ * teto.
+ */
+const budgetServerMaxSize = 100;
 
 /**
  * Resolve o dono dos recursos a partir da sessão autenticada.
  *
- * `CreateBudgetRequest.userId` e os parâmetros `userId` de listagem e overview
- * são obrigatórios no contrato atual do `ms-budgeting`. O valor nunca é pedido
- * no formulário nem exibido: ele vem do usuário autenticado. A autorização real
- * continua sendo responsabilidade do backend.
+ * A listagem é escopada pelo JWT e não recebe `userId`. A criação e o overview
+ * ainda exigem `userId` no contrato atual do `ms-budgeting`. O valor nunca é
+ * pedido no formulário nem exibido: ele vem do usuário autenticado. A
+ * autorização real continua sendo responsabilidade do backend.
  */
 export type CurrentUserProvider = Readonly<{
   getUserId: () => string | null;
@@ -48,17 +63,27 @@ export class ApiBudgetDataSource implements BudgetDataSource {
   }
 
   /**
-   * O contrato publica a lista completa do usuário, sem paginação, ordenação ou
-   * filtros no servidor. A projeção para `Page<Budget>` usa exatamente a mesma
-   * função do Mock, mantendo o comportamento idêntico nos dois modos.
+   * `GET /budgets` devolve `PageResponse<BudgetResponse>` escopado pelo JWT e
+   * aceita `page`, `size` e `sort` (`campo,direção`), mas não filtra por status
+   * nem categoria. A resposta é normalizada com o Pagination Adapter e o
+   * `.content` passa por `projectBudgetPage`, a mesma função do Mock, que aplica
+   * os filtros da interface e a paginação de exibição. Assim os dois modos
+   * mantêm o comportamento idêntico e nenhuma query inexistente é enviada.
    */
   async list(params: BudgetListParams): Promise<BudgetPage> {
     const response = await this.httpClient.request<unknown>(
       budgetingGatewayPath,
-      { query: { userId: this.requireUserId() } },
+      {
+        query: {
+          page: 0,
+          size: budgetServerMaxSize,
+          sort: `${params.sort.field},${params.sort.direction}`,
+        },
+      },
     );
 
-    return projectBudgetPage(mapBudgets(response.data), params);
+    const serverPage = normalizePage(response.data, mapBudget);
+    return projectBudgetPage(serverPage.content, params);
   }
 
   async getById(id: string): Promise<Budget> {

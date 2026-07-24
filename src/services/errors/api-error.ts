@@ -86,6 +86,11 @@ function sanitizeDetails(value: unknown, depth = 0): unknown {
   return undefined;
 }
 
+/**
+ * Lê a forma de lista dos erros por campo, publicada em `fieldErrors`, `errors`
+ * ou `details` (auth, users, categorization, ingestion). Cada item é um objeto
+ * `{ field, code, message }`, com sinônimos tolerados para robustez.
+ */
 function parseFieldErrors(value: unknown): ApiFieldError[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -106,6 +111,32 @@ function parseFieldErrors(value: unknown): ApiFieldError[] | undefined {
     const code = readString(item, ['errorCode', 'code']);
     return [{ field, message, ...(code ? { code } : {}) }];
   });
+
+  return fieldErrors.length ? fieldErrors : undefined;
+}
+
+/**
+ * Lê a forma de mapa dos erros por campo, publicada em `details.fields`
+ * (budgeting, insights): um objeto `{ campo: mensagem }`. Valores que não sejam
+ * texto ou número são ignorados, para nunca exibir `[object Object]`.
+ */
+function parseFieldErrorMap(value: unknown): ApiFieldError[] | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const fieldErrors = Object.entries(value).flatMap(
+    ([field, message]): ApiFieldError[] => {
+      const key = field.trim();
+
+      if (!key || (typeof message !== 'string' && typeof message !== 'number')) {
+        return [];
+      }
+
+      const text = String(message).trim();
+      return text ? [{ field: key, message: text }] : [];
+    },
+  );
 
   return fieldErrors.length ? fieldErrors : undefined;
 }
@@ -165,10 +196,19 @@ export function adaptApiError(
     context.correlationId;
   const retryAfter = context.headers?.get('retry-after')?.trim() || undefined;
   const location = context.headers?.get('location')?.trim() || undefined;
+  /**
+   * Os serviços do EcoFy publicam os erros por campo em formatos diferentes:
+   * uma lista `[{ field, code, message }]` (auth, users, categorization,
+   * ingestion) ou um mapa `details.fields` (budgeting, insights). As fontes são
+   * lidas em ordem de preferência, cobrindo os dois formatos.
+   */
+  const detailsList = Array.isArray(root?.details) ? root.details : undefined;
   const fieldErrors =
     parseFieldErrors(root?.fieldErrors) ??
     parseFieldErrors(detailsRecord?.fieldErrors) ??
-    parseFieldErrors(root?.errors);
+    parseFieldErrors(root?.errors) ??
+    parseFieldErrors(detailsList) ??
+    parseFieldErrorMap(detailsRecord?.fields);
   const rawDetails = root?.details;
   const details = rawDetails === undefined ? undefined : sanitizeDetails(rawDetails);
 

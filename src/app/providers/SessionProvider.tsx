@@ -48,8 +48,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    /* Revoga o refresh token no servidor sem bloquear o encerramento local: a
+       sessão é limpa imediatamente, independentemente do resultado da revogação. */
+    const refreshToken = sessionStore.getRefreshToken();
+
+    if (refreshToken) {
+      void authService.revoke(refreshToken).catch(() => undefined);
+    }
+
     sessionStore.clearSession();
-  }, [sessionStore]);
+  }, [authService, sessionStore]);
 
   const updateCurrentUserDetails = useCallback(
     (details: Pick<UserProfile, 'fullName' | 'email'>) => {

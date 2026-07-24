@@ -72,13 +72,3 @@ export function mapUserConnection(payload: unknown): UserConnection {
     provider: payload.provider.trim(),
   });
 }
-
-export function mapUserConnections(
-  payload: unknown,
-): readonly UserConnection[] {
-  if (!Array.isArray(payload)) {
-    incompatibleResponse();
-  }
-
-  return Object.freeze(payload.map(mapUserConnection));
-}

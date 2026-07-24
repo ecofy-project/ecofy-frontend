@@ -60,14 +60,57 @@ function createApiDependencies(
   authClientId: string | undefined,
   sessionStore: SessionStore,
 ) {
+  /**
+   * Renovação de sessão coordenada. `401`s concorrentes compartilham uma única
+   * tentativa de refresh (voo único). Quando a renovação falha ou não há refresh
+   * token, a sessão é encerrada — e a `ProtectedRoute` redireciona ao login por
+   * conta própria, sem acoplar o router à camada de serviço. A referência ao
+   * Data Source é diferida porque ele depende do próprio HTTP Client.
+   */
+  let refreshInFlight: Promise<boolean> | null = null;
+  const authRef: { current: ApiAuthDataSource | null } = { current: null };
+
+  const handleUnauthorized = (): Promise<boolean> => {
+    if (refreshInFlight) {
+      return refreshInFlight;
+    }
+
+    refreshInFlight = (async () => {
+      const refreshToken = sessionStore.getRefreshToken();
+      const auth = authRef.current;
+
+      if (!refreshToken || !auth) {
+        sessionStore.clearSession();
+        return false;
+      }
+
+      try {
+        sessionStore.updateTokens(await auth.refresh(refreshToken));
+        return true;
+      } catch {
+        sessionStore.clearSession();
+        return false;
+      }
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+
+    return refreshInFlight;
+  };
+
   const httpClient = new HttpClient({
     baseUrl: gatewayUrl,
-    session: { getAccessToken: sessionStore.getAccessToken },
+    session: {
+      getAccessToken: sessionStore.getAccessToken,
+      handleUnauthorized,
+    },
   });
+  const authDataSource = new ApiAuthDataSource(httpClient, authClientId);
+  authRef.current = authDataSource;
   const currentUser = { getUserId: sessionStore.getUserId };
 
   return {
-    authDataSource: new ApiAuthDataSource(httpClient, authClientId),
+    authDataSource,
     foundationDataSource: new ApiFoundationDataSource(httpClient),
     userDataSource: new ApiUserDataSource(httpClient),
     categorizationDataSource: new ApiCategorizationDataSource(httpClient),

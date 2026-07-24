@@ -107,14 +107,6 @@ export function mapBudget(payload: unknown): Budget {
   });
 }
 
-export function mapBudgets(payload: unknown): readonly Budget[] {
-  if (!Array.isArray(payload)) {
-    incompatibleResponse();
-  }
-
-  return Object.freeze(payload.map(mapBudget));
-}
-
 function mapConsumption(payload: unknown): BudgetConsumption {
   if (!isRecord(payload)) {
     incompatibleResponse();

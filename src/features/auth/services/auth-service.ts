@@ -33,4 +33,12 @@ export class AuthService {
   getCurrentUser() {
     return this.dataSource.getCurrentUser();
   }
+
+  refresh(refreshToken: string) {
+    return this.dataSource.refresh(refreshToken);
+  }
+
+  revoke(refreshToken: string) {
+    return this.dataSource.revoke(refreshToken);
+  }
 }

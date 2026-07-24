@@ -38,6 +38,46 @@ test('preserva validação e remove detalhes internos', () => {
   assert.equal(error.traceId, 'correlation-123');
 });
 
+test('mapeia erros por campo em details como lista (auth, categorization, ingestion)', () => {
+  const error = adaptApiError(
+    {
+      code: 'VALIDATION_ERROR',
+      message: 'Request validation failed',
+      details: [
+        { field: 'email', code: 'VALIDATION', message: 'E-mail inválido' },
+        { row: 4, field: 'amount', code: 'REQUIRED', message: 'Obrigatório' },
+      ],
+    },
+    { status: 400 },
+  );
+
+  assert.deepEqual(error.fieldErrors, [
+    { field: 'email', message: 'E-mail inválido', code: 'VALIDATION' },
+    { field: 'amount', message: 'Obrigatório', code: 'REQUIRED' },
+  ]);
+});
+
+test('mapeia erros por campo em details.fields como mapa (budgeting, insights)', () => {
+  const error = adaptApiError(
+    {
+      message: 'Invalid payload',
+      details: {
+        code: 'VALIDATION_ERROR',
+        fields: {
+          limitAmount: 'O limite deve ser de no mínimo 0,01.',
+          currency: 'Informe o código ISO.',
+        },
+      },
+    },
+    { status: 400 },
+  );
+
+  assert.deepEqual(error.fieldErrors, [
+    { field: 'limitAmount', message: 'O limite deve ser de no mínimo 0,01.' },
+    { field: 'currency', message: 'Informe o código ISO.' },
+  ]);
+});
+
 test('substitui mensagens internas em erros 5xx', () => {
   const error = adaptApiError(
     { message: 'NullPointerException no serviço interno' },

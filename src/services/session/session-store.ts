@@ -1,6 +1,7 @@
 import type {
   AuthenticationResult,
   AuthenticatedUser,
+  TokenResponse,
 } from '../../features/auth/types/auth';
 import type {
   PersistedSession,
@@ -60,12 +61,31 @@ export class SessionStore {
 
   getAccessToken = () => this.snapshot.accessToken;
 
+  getRefreshToken = () => this.snapshot.refreshToken;
+
   /**
    * Identificador do usuário autenticado. Serve para os contratos que ainda
    * exigem `userId` explícito; a autorização real permanece no backend, a partir
    * do JWT.
    */
   getUserId = () => this.snapshot.currentUser?.id ?? null;
+
+  /**
+   * Substitui os tokens preservando o usuário atual. Usado após uma renovação
+   * bem-sucedida, sem exigir uma nova consulta ao perfil.
+   */
+  updateTokens(tokens: TokenResponse) {
+    if (!this.persistedSession) {
+      return;
+    }
+
+    this.persistedSession = {
+      ...this.persistedSession,
+      tokens,
+    };
+    this.persistence.write(this.persistedSession);
+    this.setSnapshot(createSnapshot(this.persistedSession));
+  }
 
   establishSession(result: AuthenticationResult) {
     const persistedSession: PersistedSession = {

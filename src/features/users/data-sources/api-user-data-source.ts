@@ -1,5 +1,6 @@
 import type { HttpClient } from '../../../services/http';
 import { createCorrelationId } from '../../../services/http';
+import { normalizePage } from '../../../services/pagination/pagination';
 import type {
   CreateUserConnectionInput,
   UpdateUserPreferencesInput,
@@ -11,12 +12,23 @@ import type {
 import type { UserDataSource } from './user-data-source';
 import {
   mapUserConnection,
-  mapUserConnections,
   mapUserPreferences,
   mapUserProfile,
 } from './user-mappers';
 
-const usersGatewayPath = '/users/api/users/v1';
+/**
+ * Prefixo versionado do API Gateway. A rota `/api/v1/**` reescreve para o mesmo
+ * downstream da rota legada (`/users/api/users/v1`), com CircuitBreaker, Retry e
+ * fallback que a rota legada não tem.
+ */
+const usersGatewayPath = '/api/v1/users';
+
+/**
+ * Teto de página do `ms-users` (`max-size`). A tela de conexões apenas lista
+ * tudo, sem filtro nem paginação própria, então uma página cheia basta. Um
+ * usuário tem poucas conexões, bem abaixo desse teto.
+ */
+const connectionsServerMaxSize = 100;
 
 function userPath(resource: 'profile' | 'preferences', userId: string) {
   return `${usersGatewayPath}/${resource}/${encodeURIComponent(userId)}`;
@@ -78,12 +90,15 @@ export class ApiUserDataSource implements UserDataSource {
   }
 
   async listConnections(userId: string): Promise<readonly UserConnection[]> {
+    /* `GET /connections` devolve `PagedResponse<ConnectionResponse>` e lê
+       `page`/`size`/`sort` (não `limit`); `userId` continua obrigatório e é
+       validado no servidor. A resposta é normalizada e reduzida ao conteúdo. */
     const response = await this.httpClient.request<unknown>(
       `${usersGatewayPath}/connections`,
-      { query: { userId, limit: 50 } },
+      { query: { userId, size: connectionsServerMaxSize } },
     );
 
-    return mapUserConnections(response.data);
+    return normalizePage(response.data, mapUserConnection).content;
   }
 
   async createConnection(

@@ -132,6 +132,16 @@ function createTransportError(
   };
 }
 
+/**
+ * Um `401` vindo dos próprios endpoints de autenticação (login, refresh, revoke)
+ * não deve acionar a renovação global: no login significa credenciais inválidas
+ * e na renovação significa que a sessão realmente expirou. Isso também evita
+ * qualquer recursão entre o handler e a chamada de refresh.
+ */
+function isAuthEndpoint(path: string): boolean {
+  return /^\/auth\//.test(path) || /^https?:\/\/[^/]+\/auth\//.test(path);
+}
+
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly session: HttpClientOptions['session'];
@@ -150,70 +160,107 @@ export class HttpClient {
     options: HttpRequestOptions = {},
   ): Promise<HttpResponse<T>> {
     const correlationId = options.correlationId ?? createCorrelationId();
-    const headers = new Headers(options.headers);
-    headers.set('Accept', 'application/json');
-    headers.set('X-Correlation-Id', correlationId);
-
-    const accessToken = await this.session?.getAccessToken();
-
-    if (accessToken) {
-      headers.set('Authorization', `Bearer ${accessToken}`);
-    }
-
     const method = options.method ?? 'GET';
+
+    /* Serializa o corpo uma única vez e captura o `Content-Type` definido, para
+       que cada tentativa remonte os headers com o token vigente. */
+    const bodyHeaders = new Headers();
     const body =
       method === 'GET' || method === 'HEAD'
         ? undefined
-        : serializeBody(options.body, headers);
-    const controller = new AbortController();
-    let timedOut = false;
-    const timeoutId = window.setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, options.timeoutMs ?? this.timeoutMs);
-    const abortFromCaller = () => controller.abort();
-    options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+        : serializeBody(options.body, bodyHeaders);
+    const serializedContentType = bodyHeaders.get('content-type') ?? undefined;
+
+    const buildHeaders = (accessToken: string | null) => {
+      const headers = new Headers(options.headers);
+      headers.set('Accept', 'application/json');
+      headers.set('X-Correlation-Id', correlationId);
+
+      if (serializedContentType && !headers.has('content-type')) {
+        headers.set('Content-Type', serializedContentType);
+      }
+
+      if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`);
+      }
+
+      return headers;
+    };
+
+    const attempt = async (accessToken: string | null) => {
+      const controller = new AbortController();
+      let timedOut = false;
+      const timeoutId = window.setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, options.timeoutMs ?? this.timeoutMs);
+      const abortFromCaller = () => controller.abort();
+      options.signal?.addEventListener('abort', abortFromCaller, {
+        once: true,
+      });
+
+      try {
+        const response = await this.fetchImplementation(
+          buildUrl(this.baseUrl, path, options.query),
+          {
+            method,
+            headers: buildHeaders(accessToken),
+            body,
+            signal: controller.signal,
+          },
+        );
+        const payload = await parseResponseBody(response);
+
+        if (!response.ok) {
+          throw new ApiErrorException(
+            adaptApiError(payload, {
+              status: response.status,
+              headers: response.headers,
+              correlationId,
+            }),
+          );
+        }
+
+        return {
+          data: payload as T,
+          status: response.status,
+          correlationId:
+            response.headers.get('x-correlation-id') ?? correlationId,
+          headers: response.headers,
+        };
+      } catch (error) {
+        if (error instanceof ApiErrorException) {
+          throw error;
+        }
+
+        throw new ApiErrorException(
+          createTransportError(error, timedOut, correlationId),
+        );
+      } finally {
+        window.clearTimeout(timeoutId);
+        options.signal?.removeEventListener('abort', abortFromCaller);
+      }
+    };
 
     try {
-      const response = await this.fetchImplementation(
-        buildUrl(this.baseUrl, path, options.query),
-        {
-          method,
-          headers,
-          body,
-          signal: controller.signal,
-        },
-      );
-      const payload = await parseResponseBody(response);
-
-      if (!response.ok) {
-        throw new ApiErrorException(
-          adaptApiError(payload, {
-            status: response.status,
-            headers: response.headers,
-            correlationId,
-          }),
-        );
-      }
-
-      return {
-        data: payload as T,
-        status: response.status,
-        correlationId:
-          response.headers.get('x-correlation-id') ?? correlationId,
-        headers: response.headers,
-      };
+      return await attempt(await this.session?.getAccessToken() ?? null);
     } catch (error) {
-      if (error instanceof ApiErrorException) {
-        throw error;
+      /* Um único retry após a renovação da sessão. O handler decide entre
+         renovar (repetir) ou encerrar a sessão (deixar o 401 seguir). */
+      if (
+        error instanceof ApiErrorException &&
+        error.apiError.status === 401 &&
+        !isAuthEndpoint(path) &&
+        this.session?.handleUnauthorized
+      ) {
+        const shouldRetry = await this.session.handleUnauthorized();
+
+        if (shouldRetry) {
+          return attempt((await this.session.getAccessToken()) ?? null);
+        }
       }
 
-      throw new ApiErrorException(
-        createTransportError(error, timedOut, correlationId),
-      );
-    } finally {
-      window.clearTimeout(timeoutId);
-      options.signal?.removeEventListener('abort', abortFromCaller);
+      throw error;
     }
   }
 }

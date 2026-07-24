@@ -12,6 +12,7 @@ import type {
   PasswordResetConfirmInput,
   PasswordResetRequestInput,
   RegisterUserInput,
+  TokenResponse,
 } from '../../features/auth/types/auth';
 import { simulateMockLatency } from '../shared/mock-runtime';
 import type { DemoStore } from '../demo/demo-store';
@@ -166,5 +167,23 @@ export class MockAuthDataSource implements AuthDataSource {
       roles: this.options.roles ?? user.roles,
       permissions: this.options.permissions ?? user.permissions,
     };
+  }
+
+  async refresh(refreshToken: string): Promise<TokenResponse> {
+    void refreshToken;
+    await simulateMockLatency(this.options.delayMs);
+
+    return {
+      tokenType: 'Bearer',
+      accessToken: 'demo-session-access-token',
+      refreshToken: 'demo-session-refresh-token',
+      expiresIn: 3600,
+    };
+  }
+
+  async revoke(refreshToken: string): Promise<void> {
+    /* Nenhuma comunicação externa: a demonstração apenas encerra localmente. */
+    void refreshToken;
+    await simulateMockLatency(this.options.delayMs);
   }
 }

@@ -263,9 +263,14 @@ O script aceita `scenario`, `auth`, `delay`, `roles`, `permissions` e `mode`.
 ```env
 VITE_APP_DATA_MODE=api
 VITE_APP_ENV=development
-VITE_API_GATEWAY_URL=http://localhost:8080
-VITE_AUTH_CLIENT_ID=ecofy-web
+VITE_API_GATEWAY_URL=http://localhost:5173
+VITE_AUTH_CLIENT_ID=eco_dashboard_local
 ```
+
+No desenvolvimento em API Mode, o Vite encaminha os prefixos `/auth` e `/api`
+para o API Gateway local em `http://localhost:8080`. Assim, o navegador consome
+a API pela mesma origem do frontend e o gateway continua sendo o único ponto de
+entrada do backend.
 
 ```bash
 npm run dev -- --mode api

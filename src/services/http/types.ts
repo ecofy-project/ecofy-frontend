@@ -1,5 +1,12 @@
 export type SessionAdapter = {
   getAccessToken: () => string | null | Promise<string | null>;
+  /**
+   * Chamado quando uma requisição fora dos endpoints de autenticação recebe um
+   * `401`. Deve devolver `true` quando a sessão foi renovada e a requisição
+   * original pode ser repetida uma vez, ou `false` quando a sessão foi
+   * encerrada e o `401` deve seguir para a interface.
+   */
+  handleUnauthorized?: () => boolean | Promise<boolean>;
 };
 
 export type QueryValue =

@@ -1,4 +1,7 @@
-import { ApiErrorException } from '../../../services/errors/api-error';
+import {
+  ApiErrorException,
+  type ApiError,
+} from '../../../services/errors/api-error';
 import type { HttpClient } from '../../../services/http';
 import { createCorrelationId } from '../../../services/http';
 import type {
@@ -6,20 +9,82 @@ import type {
   InsightListParams,
   InsightPage,
   InsightsBundle,
+  RebuildMode,
+  RebuildRun,
 } from '../types/insights';
 import { projectInsightPage } from '../utils/insight-projection';
 import type { InsightsDataSource } from './insights-data-source';
 import { mapInsightsBundle } from './insights-mappers';
 
-const insightsGatewayPath = '/insights/api/insights/v1';
+/**
+ * Prefixo versionado do API Gateway. A rota `/api/v1/**` reescreve para o mesmo
+ * downstream da rota legada (`/insights/api/insights/v1`), com CircuitBreaker,
+ * Retry e fallback que a rota legada não tem.
+ */
+const insightsGatewayPath = '/api/v1/insights';
+
+/**
+ * Estados terminais de `RebuildStatus` no domínio do `ms-insights`
+ * (`COMPLETED`, `COMPLETED_WITH_ERRORS`, `FAILED`, `CANCELLED`). O modelo interno
+ * é binário: qualquer estado terminal encerra o acompanhamento. `PENDING` e
+ * `RUNNING` mantêm o polling.
+ */
+const processingStatuses = new Set(['PENDING', 'RUNNING']);
+
+/** Período padrão do rebuild: o mês corrente, em `LocalDate` (UTC). */
+function currentMonthRange() {
+  const now = new Date();
+  const iso = (date: Date) => date.toISOString().slice(0, 10);
+
+  return {
+    periodStart: iso(
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+    ),
+    periodEnd: iso(
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)),
+    ),
+  };
+}
+
+function incompatibleRebuildResponse(): never {
+  throw new ApiErrorException({
+    code: 'INCOMPATIBLE_INSIGHTS_RESPONSE',
+    message: 'A resposta de reconstrução recebida é incompatível.',
+    status: 502,
+  } satisfies ApiError);
+}
+
+/**
+ * Projeta `RebuildRunResult` no `RebuildRun` interno: apenas o identificador da
+ * execução (`id`) e o estado reduzido a `PROCESSING`/`COMPLETED`.
+ */
+function mapRebuildRun(payload: unknown): RebuildRun {
+  if (typeof payload !== 'object' || payload === null) {
+    incompatibleRebuildResponse();
+  }
+
+  const record = payload as Record<string, unknown>;
+  const runId =
+    typeof record.id === 'string' && record.id.trim() ? record.id.trim() : '';
+  const status = typeof record.status === 'string' ? record.status : '';
+
+  if (!runId || !status) {
+    incompatibleRebuildResponse();
+  }
+
+  return {
+    runId,
+    status: processingStatuses.has(status) ? 'PROCESSING' : 'COMPLETED',
+  };
+}
 
 /**
  * Origem de dados analítica em API Mode.
  *
- * `requestRebuild` e `getRebuildStatus` não são implementados de propósito: o
- * `ms-insights` não publica endpoints de reconstrução, e chamar um caminho
- * inexistente seria inventar contrato. A ausência dos métodos faz a interface
- * esconder a ação avançada neste modo.
+ * A reconstrução usa `POST /rebuild` e `GET /rebuild/{runId}`. O contrato exige
+ * um período; como a ação da interface é apenas "reconstruir análises ausentes",
+ * sem seleção de período, o mês corrente é usado como escopo padrão, no modo
+ * `MISSING`.
  */
 export class ApiInsightsDataSource implements InsightsDataSource {
   constructor(
@@ -79,5 +144,32 @@ export class ApiInsightsDataSource implements InsightsDataSource {
     );
 
     return mapInsightsBundle(response.data);
+  }
+
+  async requestRebuild(mode: RebuildMode): Promise<RebuildRun> {
+    const { periodEnd, periodStart } = currentMonthRange();
+    const response = await this.httpClient.request<unknown>(
+      `${insightsGatewayPath}/rebuild`,
+      {
+        method: 'POST',
+        body: {
+          userId: this.requireUserId(),
+          periodStart,
+          periodEnd,
+          granularity: 'MONTH',
+          mode,
+        },
+      },
+    );
+
+    return mapRebuildRun(response.data);
+  }
+
+  async getRebuildStatus(runId: string): Promise<RebuildRun> {
+    const response = await this.httpClient.request<unknown>(
+      `${insightsGatewayPath}/rebuild/${encodeURIComponent(runId)}`,
+    );
+
+    return mapRebuildRun(response.data);
   }
 }

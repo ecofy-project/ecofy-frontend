@@ -17,7 +17,12 @@ import {
   mapImportJobDetails,
 } from './import-mappers';
 
-const ingestionGatewayPath = '/ingestion/api/import';
+/**
+ * Prefixo versionado do API Gateway. A rota `/api/v1/**` reescreve para o mesmo
+ * downstream da rota legada (`/ingestion/api/import`), com CircuitBreaker, Retry
+ * e fallback que a rota legada não tem.
+ */
+const ingestionGatewayPath = '/api/v1/ingestion';
 
 /** Motivos de conflito em que o job já existente pode ser localizado. */
 const alreadyProcessedCode = 'IMPORT_ALREADY_PROCESSED';

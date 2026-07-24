@@ -11,7 +11,12 @@ import {
 import type { NotificationDataSource } from './notification-data-source';
 import { mapNotification, mapNotifications } from './notification-mappers';
 
-const notificationGatewayPath = '/notification/api/notification/v1/notifications';
+/**
+ * Prefixo versionado do API Gateway. A rota `/api/v1/**` reescreve para o mesmo
+ * downstream da rota legada (`/notification/api/notification/v1/notifications`),
+ * com CircuitBreaker, Retry e fallback que a rota legada não tem.
+ */
+const notificationGatewayPath = '/api/v1/notification/notifications';
 
 /**
  * Resolve o dono das notificações a partir da sessão autenticada. O contrato

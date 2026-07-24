@@ -4,12 +4,12 @@ import type { Budget, BudgetListParams, BudgetSort } from '../types/budget';
 /**
  * Projeção de listagem compartilhada por Mock e API.
  *
- * `GET /budgeting/api/budgeting/v1/budgets` publica uma lista completa por
- * usuário, sem `page`, `size`, `sort` ou filtros. Para que a UI trabalhe sempre
- * com o mesmo contrato interno (`Page<Budget>`), a projeção acontece aqui e é
- * usada pelos dois Data Sources — assim Mock e API têm exatamente as mesmas
- * regras de filtro, ordenação e paginação, e nenhuma query inexistente é
- * enviada ao backend.
+ * `GET /budgeting/api/budgeting/v1/budgets` pagina e ordena no servidor, mas não
+ * filtra por status nem categoria. Para que a UI ofereça esses filtros de forma
+ * consistente, o Data Source de API busca uma página cheia e entrega o conteúdo
+ * a esta função, que aplica filtro, ordenação e paginação de exibição em
+ * memória — exatamente como o Mock faz sobre o Mock Storage. Assim os dois modos
+ * têm o mesmo comportamento e nenhuma query inexistente é enviada ao backend.
  */
 
 export const defaultBudgetPageSize = 6;

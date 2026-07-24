@@ -6,6 +6,7 @@ import type {
   PasswordResetConfirmInput,
   PasswordResetRequestInput,
   RegisterUserInput,
+  TokenResponse,
 } from '../types/auth';
 
 export interface AuthDataSource {
@@ -15,4 +16,8 @@ export interface AuthDataSource {
   requestPasswordReset(input: PasswordResetRequestInput): Promise<void>;
   confirmPasswordReset(input: PasswordResetConfirmInput): Promise<void>;
   getCurrentUser(): Promise<AuthenticatedUser>;
+  /** Renova o par de tokens a partir do refresh token vigente. */
+  refresh(refreshToken: string): Promise<TokenResponse>;
+  /** Revoga o refresh token no servidor. Encerramento de sessão. */
+  revoke(refreshToken: string): Promise<void>;
 }

@@ -21,6 +21,34 @@
         }
       })();
     </script>
+    <script>
+      (() => {
+        if (location.hostname !== 'localhost' || location.port !== '5173') {
+          return;
+        }
+
+        const originalFetch = window.fetch.bind(window);
+
+        window.fetch = (input, init) => {
+          const requestUrl =
+            input instanceof Request ? input.url : String(input);
+          const url = new URL(requestUrl, location.href);
+
+          if (url.hostname !== 'localhost' || url.port !== '8080') {
+            return originalFetch(input, init);
+          }
+
+          url.protocol = location.protocol;
+          url.host = location.host;
+
+          if (input instanceof Request) {
+            return originalFetch(new Request(url, input), init);
+          }
+
+          return originalFetch(url, init);
+        };
+      })();
+    </script>
     <title>EcoFy</title>
   </head>
   <body>

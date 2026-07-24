@@ -8,6 +8,7 @@ import type {
   PasswordResetConfirmInput,
   PasswordResetRequestInput,
   RegisterUserInput,
+  TokenResponse,
 } from '../types/auth';
 import type { AuthDataSource } from './auth-data-source';
 import {
@@ -103,5 +104,41 @@ export class ApiAuthDataSource implements AuthDataSource {
     );
 
     return mapAuthenticatedUser(response.data);
+  }
+
+  async refresh(refreshToken: string): Promise<TokenResponse> {
+    if (!this.clientId) {
+      throw new ApiErrorException({
+        code: 'AUTH_CLIENT_ID_NOT_CONFIGURED',
+        message:
+          'O identificador público do cliente de autenticação não está configurado.',
+        status: 503,
+      });
+    }
+
+    const response = await this.httpClient.request<unknown>(
+      '/auth/api/auth/refresh',
+      {
+        method: 'POST',
+        body: {
+          clientId: this.clientId,
+          refreshToken,
+        },
+      },
+    );
+
+    return mapTokenResponse(response.data);
+  }
+
+  async revoke(refreshToken: string): Promise<void> {
+    /* `refreshToken: true` indica ao serviço que o token enviado é um refresh
+       token e deve ser revogado como tal. */
+    await this.httpClient.request<void>('/auth/api/auth/revoke', {
+      method: 'POST',
+      body: {
+        token: refreshToken,
+        refreshToken: true,
+      },
+    });
   }
 }

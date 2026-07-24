@@ -20,7 +20,12 @@ import {
   mapSuggestion,
 } from './categorization-mappers';
 
-const categorizationGatewayPath = '/categorization/api/categorization/v1';
+/**
+ * Prefixo versionado do API Gateway. A rota `/api/v1/**` reescreve para o mesmo
+ * downstream da rota legada (`/categorization/api/categorization/v1`), com
+ * CircuitBreaker, Retry e fallback que a rota legada não tem.
+ */
+const categorizationGatewayPath = '/api/v1/categorization';
 
 export class ApiCategorizationDataSource implements CategorizationDataSource {
   constructor(private readonly httpClient: HttpClient) {}

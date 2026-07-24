@@ -4,7 +4,12 @@ import type { CreateGoalInput, Goal, UpdateGoalInput } from '../types/goal';
 import type { GoalDataSource } from './goal-data-source';
 import { mapGoal, mapGoals } from './goal-mappers';
 
-const goalsGatewayPath = '/insights/api/insights/v1/goals';
+/**
+ * Prefixo versionado do API Gateway. A rota `/api/v1/**` reescreve para o mesmo
+ * downstream da rota legada (`/insights/api/insights/v1/goals`), com
+ * CircuitBreaker, Retry e fallback que a rota legada não tem.
+ */
+const goalsGatewayPath = '/api/v1/insights/goals';
 
 /**
  * Resolve o dono das metas a partir da sessão autenticada.
